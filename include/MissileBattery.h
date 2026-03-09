@@ -43,12 +43,23 @@ public:
     bool hasEngagementResult() const { return hasResult_; }
     void clearEngagementResult() { hasResult_ = false; }
 
+    // Ammunition logistics
+    int getTotalMissileStock() const { return totalMissileStock_; }
+    int getLoaderCount() const { return loaderCount_; }
+
+    // Tracking radar info
+    const std::string& getTrackingRadarType() const { return trackingRadarType_; }
+    bool hasMissileTracking() const { return hasMissileTracking_; }
+    int getMaxSimultaneousEngagements() const { return maxSimultaneousEngagements_; }
+
 private:
     std::string designation_;
     BatteryType type_;
     BatteryStatus status_;
     int missilesRemaining_;
     int maxMissiles_;
+    int totalMissileStock_;      // Total missiles in battery stock
+    int loaderCount_;            // Number of loaders for reload ops
     float reloadTimeRemaining_;
     float reloadTime_;
     float maxRange_;
@@ -58,6 +69,11 @@ private:
     float missileSpeed_;       // m/s
     float baseKillProbability_;
     PolarCoord position_;
+
+    // Tracking radar
+    std::string trackingRadarType_;
+    bool hasMissileTracking_;
+    int maxSimultaneousEngagements_;
 
     // Engagement state
     int assignedTrackId_;

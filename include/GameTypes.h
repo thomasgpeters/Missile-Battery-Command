@@ -35,7 +35,8 @@ enum class TrackClassification {
 
 enum class BatteryType {
     PATRIOT,    // Mobile Patriot Missile Battery (MPMB)
-    HAWK        // Hawk Surface-to-Air Missile Battery (HSAMB)
+    HAWK,       // Hawk Surface-to-Air Missile Battery (HSAMB)
+    JAVELIN     // Javelin MANPADS Platoon (FGM-148, shoulder-launched)
 };
 
 enum class BatteryStatus {
@@ -115,8 +116,10 @@ struct BatteryData {
     std::string designation;     // e.g., "PATRIOT-1"
     BatteryType type;
     BatteryStatus status;
-    int missilesRemaining;
-    int maxMissiles;
+    int missilesRemaining;       // Ready missiles on launcher
+    int maxMissiles;             // Launcher capacity
+    int totalMissileStock;       // Total missiles in battery stock (including ready)
+    int loaderCount;             // Number of loaders for reload operations
     float reloadTimeRemaining;   // Seconds until reload complete
     float maxRange;              // km
     float minRange;              // km
@@ -124,6 +127,11 @@ struct BatteryData {
     float minAltitude;           // feet
     int assignedTrackId;         // -1 if not tracking
     PolarCoord position;         // Battery position relative to radar
+
+    // Tracking radar info
+    std::string trackingRadarType;   // e.g., "AN/MPQ-53", "AN/MPQ-46 HPI", "CLU IR/FLIR"
+    bool hasMissileTracking;         // Provides missile guidance tracking
+    int maxSimultaneousEngagements;  // How many targets can be engaged at once
 };
 
 struct EngagementRecord {
@@ -167,14 +175,31 @@ namespace GameConstants {
     constexpr float PATRIOT_KILL_PROB = 0.85f;           // Base kill probability
 
     // Hawk Battery (HSAMB) — MIM-23
+    // AN/MPQ-46 High Power Illuminator for target tracking
+    // CW illuminator provides semi-active radar homing guidance
     constexpr float HAWK_MAX_RANGE = 45.0f;              // km (~24 NM)
     constexpr float HAWK_MIN_RANGE = 1.0f;               // km
     constexpr float HAWK_MAX_ALT = 45000.0f;             // feet
     constexpr float HAWK_MIN_ALT = 100.0f;               // feet (treetop)
-    constexpr int   HAWK_MAX_MISSILES = 3;
-    constexpr float HAWK_RELOAD_TIME = 10.0f;            // seconds
+    constexpr int   HAWK_MAX_MISSILES = 3;               // Ready on launcher
+    constexpr int   HAWK_TOTAL_STOCK = 33;               // Total missiles per battery
+    constexpr int   HAWK_LOADERS = 3;                    // Loader crews per battery
+    constexpr float HAWK_RELOAD_TIME = 10.0f;            // seconds per loader cycle
     constexpr float HAWK_MISSILE_SPEED = 900.0f;         // m/s (Mach 2.7)
     constexpr float HAWK_KILL_PROB = 0.75f;              // Base kill probability
+
+    // Javelin MANPADS Platoon — FGM-148 (game-adapted for close-in air defense)
+    // CLU (Command Launch Unit) with IR/FLIR seeker
+    // Electronic comms link to AN/TSQ-73 for target cueing
+    // Close-combat defense: engages hostiles that breach the 30-mile perimeter
+    constexpr float JAVELIN_MAX_RANGE = 55.0f;           // km (~30 NM) close combat zone
+    constexpr float JAVELIN_MIN_RANGE = 0.5f;            // km
+    constexpr float JAVELIN_MAX_ALT = 15000.0f;          // feet — low to medium altitude
+    constexpr float JAVELIN_MIN_ALT = 0.0f;              // feet (ground level)
+    constexpr int   JAVELIN_MAX_MISSILES = 2;            // Ready per team (CLU + 1 spare)
+    constexpr float JAVELIN_RELOAD_TIME = 20.0f;         // seconds (manual reload)
+    constexpr float JAVELIN_MISSILE_SPEED = 300.0f;      // m/s (~Mach 0.9)
+    constexpr float JAVELIN_KILL_PROB = 0.65f;           // Base kill probability (IR seeker)
 
     // Scoring
     constexpr int SCORE_HOSTILE_DESTROYED_BASE = 100;

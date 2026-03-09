@@ -18,12 +18,23 @@ void FireControlSystem::init()
 
     // Create 3 Hawk batteries between the Patriots (closer to center)
     // Positioned at ~8 km for short-range low-altitude defense
+    // Each battery: 33 missile stock, 3 loaders, AN/MPQ-46 HPI tracking radar
     batteries_.push_back(std::make_unique<MissileBattery>(
         "HAWK-1", BatteryType::HAWK, 8.0f, 60.0f));          // NE
     batteries_.push_back(std::make_unique<MissileBattery>(
         "HAWK-2", BatteryType::HAWK, 8.0f, 180.0f));         // South
     batteries_.push_back(std::make_unique<MissileBattery>(
         "HAWK-3", BatteryType::HAWK, 8.0f, 300.0f));         // NW
+
+    // Create 3 Javelin MANPADS platoons (shoulder-launched, innermost defense)
+    // Positioned at ~3 km from center — last line of defense
+    // Electronic comms link to AN/TSQ-73 for target cueing from Missile Minder
+    batteries_.push_back(std::make_unique<MissileBattery>(
+        "JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f));    // NNE
+    batteries_.push_back(std::make_unique<MissileBattery>(
+        "JAVELIN-2", BatteryType::JAVELIN, 3.0f, 150.0f));   // SSE
+    batteries_.push_back(std::make_unique<MissileBattery>(
+        "JAVELIN-3", BatteryType::JAVELIN, 3.0f, 270.0f));   // West
 }
 
 void FireControlSystem::update(float dt)

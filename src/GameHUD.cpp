@@ -55,6 +55,7 @@ bool GameHUD::init()
     auto* controlsLabel = cocos2d::Label::createWithSystemFont(
         "FIRE CONTROL:\n"
         " 1-3 PATRIOT  4-6 HAWK\n"
+        " 7-9 JAVELIN\n"
         " F=FIRE  A=ABORT\n"
         " CLICK=SELECT TRACK",
         "Courier", 9);
@@ -218,10 +219,19 @@ void GameHUD::updateBatteryStatusPanel()
         }
 
         char line[128];
-        snprintf(line, sizeof(line), "%s%-10s [%s] %d/%d",
-            isAvailable ? ">" : " ",
-            bat.designation.c_str(), statusStr,
-            bat.missilesRemaining, bat.maxMissiles);
+        if (bat.totalMissileStock > bat.missilesRemaining) {
+            // Show stock count for batteries with reserves (e.g., Hawk)
+            snprintf(line, sizeof(line), "%s%-10s [%s] %d/%d stk:%d",
+                isAvailable ? ">" : " ",
+                bat.designation.c_str(), statusStr,
+                bat.missilesRemaining, bat.maxMissiles,
+                bat.totalMissileStock);
+        } else {
+            snprintf(line, sizeof(line), "%s%-10s [%s] %d/%d",
+                isAvailable ? ">" : " ",
+                bat.designation.c_str(), statusStr,
+                bat.missilesRemaining, bat.maxMissiles);
+        }
         status += line;
 
         // Show reload time if reloading
