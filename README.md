@@ -117,4 +117,31 @@ Missile-Battery-Command/
 
 The complete game framework is operational. All core systems — radar display, aircraft generation, IFF interrogation, track management, missile batteries, and fire control — are implemented and verified through the console stub simulation. The next step is integrating cocos2d-x for the graphical radar scope and building out the interactive gameplay loop.
 
-See [PLAN.md](docs/PLAN.md) for the full development roadmap and [BACKLOG.md](docs/BACKLOG.md) for the prioritized feature list.
+### Development Roadmap
+
+Development follows 7 phases, each building on the last. See [PLAN.md](docs/PLAN.md) for full details and exit criteria.
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | Foundation — C++ framework, all core systems, console stub simulation | COMPLETE |
+| **Phase 2** | Graphical Radar Console — cocos2d-x PPI scope, sweep beam, blips, track selection, battery icons | Planned |
+| **Phase 3** | Interactive Fire Control — HUD panels, keyboard engagement flow, missile flight visualization, hit/miss results | Planned |
+| **Phase 4** | Visual Realism — CRT shader (barrel distortion, scanlines, vignette), phosphor effects, radar noise/clutter, track trails, console bezel, explosion particles | Planned |
+| **Phase 5** | Audio Design — ambient console hum, radar sweep tones, IFF response sounds, missile launch/impact, warning klaxons | Planned |
+| **Phase 6** | Metagame & Polish — main menu, settings, mission briefings, after action reports, high scores, tutorial, campaign mode | Planned |
+| **Phase 7** | Advanced Tactics — ECM/jamming, formation raids, terrain masking, battery relocation, resupply convoys, SIGINT intel feed | Stretch |
+
+Phases 4 and 5 can be developed in parallel after Phase 3. Phase 7 items are independent and can be added incrementally.
+
+### Feature Backlog
+
+Over 40 features are tracked and prioritized across 6 tiers. See [BACKLOG.md](docs/BACKLOG.md) for the full list with dependencies.
+
+| Tier | Priority | Focus | Items |
+|------|----------|-------|-------|
+| **Tier 1** | CRITICAL | Graphical Radar Console — cocos2d-x build, PPI scope rendering, sweep beam, blip color-coding, track labels/selection, HUD panels, keyboard fire control | 10 |
+| **Tier 2** | CRITICAL | Core Gameplay Loop — missile launch visualization, engagement results, score tracking, message log, game over screen, level progression, penetration/friendly-fire warnings | 8 |
+| **Tier 3** | HIGH | Visual Polish — radar noise/clutter, track history trails, battery position icons, phosphor burn-in, CRT screen shader, explosion particles, console bezel, scope brightness pulsing | 8 |
+| **Tier 4** | HIGH | Audio — radar sweep tone, new contact alert, IFF response tones, missile launch/explosion sounds, warning klaxon, ambient console hum | 7 |
+| **Tier 5** | MEDIUM | Advanced Gameplay — electronic countermeasures (ECM), SATCOM intelligence, battery relocation, missile resupply, multi-target engagement, formation raids, terrain masking, day/night cycle | 8 |
+| **Tier 6** | MEDIUM | Metagame & UI — main menu, settings screen, high score table, pause menu, mission briefing, after action report, tutorial mode, campaign mode | 8 |
