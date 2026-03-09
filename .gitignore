@@ -1,0 +1,11 @@
+build/
+cmake-build-*/
+.idea/
+.vscode/
+*.o
+*.obj
+*.exe
+*.out
+cocos2d-x/
+external/
+.DS_Store
