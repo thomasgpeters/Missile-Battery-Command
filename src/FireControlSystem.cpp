@@ -7,21 +7,23 @@ void FireControlSystem::init()
 {
     batteries_.clear();
 
-    // Create 3 Patriot batteries in a triangle formation
+    // Create 3 Patriot batteries in a triangle formation around the territory
+    // Positioned at ~15 km from center for optimal coverage of the defense zone
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "PATRIOT-1", BatteryType::PATRIOT, 5.0f, 0.0f));     // North
+        "PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f));     // North
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "PATRIOT-2", BatteryType::PATRIOT, 5.0f, 120.0f));   // SE
+        "PATRIOT-2", BatteryType::PATRIOT, 15.0f, 120.0f));   // SE
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "PATRIOT-3", BatteryType::PATRIOT, 5.0f, 240.0f));   // SW
+        "PATRIOT-3", BatteryType::PATRIOT, 15.0f, 240.0f));   // SW
 
-    // Create 3 Hawk batteries between the Patriots
+    // Create 3 Hawk batteries between the Patriots (closer to center)
+    // Positioned at ~8 km for short-range low-altitude defense
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "HAWK-1", BatteryType::HAWK, 3.0f, 60.0f));          // NE
+        "HAWK-1", BatteryType::HAWK, 8.0f, 60.0f));          // NE
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "HAWK-2", BatteryType::HAWK, 3.0f, 180.0f));         // South
+        "HAWK-2", BatteryType::HAWK, 8.0f, 180.0f));         // South
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "HAWK-3", BatteryType::HAWK, 3.0f, 300.0f));         // NW
+        "HAWK-3", BatteryType::HAWK, 8.0f, 300.0f));         // NW
 }
 
 void FireControlSystem::update(float dt)

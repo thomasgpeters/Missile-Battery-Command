@@ -75,7 +75,7 @@ void test_can_engage_in_range()
 void test_cannot_engage_out_of_range()
 {
     MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 5.0f, 0.0f);
-    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 80.0f, 0.0f,
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 170.0f, 0.0f,
                 35000.0f, 500.0f, 180.0f, false);
     ac.setTrackId(1);
 

@@ -121,4 +121,69 @@ The project compiles cleanly with GCC 13.3 in stub mode (no cocos2d-x). The 60-s
 
 ---
 
+### Commit 2 — Phase 2: Graphical Radar Console & Raytheon AN/TPS-43E Upgrade
+
+**Date:** 2026-03-09
+**Branch:** `claude/aircraft-defense-game-bsd74`
+**Summary:** Full Phase 2 implementation — graphical PPI radar scope with cocos2d-x, upgraded to Raytheon AN/TPS-43E long-range surveillance radar (250 NM / 463 km).
+
+#### Radar System Upgrade — AN/TPS-43E
+
+The radar model was upgraded from a short-range 100 km system to the Raytheon AN/TPS-43E long-range surveillance radar:
+- **Range:** 250 nautical miles (463 km), well beyond earth's curvature
+- **Detection:** Pulse-Doppler with MTI for beyond-horizon detection
+- All game constants scaled proportionally for the new radar envelope
+
+#### Constants Updated (GameTypes.h)
+- `RADAR_MAX_RANGE_KM`: 100 → 463 km (250 NM)
+- `RADAR_MAX_RANGE_NM`: Added — 250.0 NM
+- `NM_TO_KM` / `KM_TO_NM`: Added unit conversions (1 NM = 1.852 km)
+- `PATRIOT_MAX_RANGE`: 70 → 160 km (~86 NM) — MIM-104 realistic range
+- `HAWK_MAX_RANGE`: 40 → 45 km (~24 NM) — MIM-23 realistic range
+- `TERRITORY_RADIUS_KM`: 10 → 25 km (~13.5 NM) — scaled defense zone
+
+#### Graphical Radar Display (RadarDisplay.h/.cpp — Complete Rewrite)
+- **7-layer draw node architecture** ordered by z-depth: background, noise, sweep, trails, blips, overlay, labels
+- **Sweep beam:** Filled triangle wedge with 30° phosphor glow trail (20 segments), non-linear brightness decay (`pow(fadeRatio, 0.6f)`)
+- **Radar blips:** Color-coded by IFF, sized by RCS, glow effect for bright blips
+- **Track history trails:** 8 trail points, 1.5s intervals, 15s max age, fading opacity
+- **Selection highlight:** Animated pulsing corner brackets with ring
+- **Range rings:** Labeled in nautical miles for authentic military display
+- **Radar noise:** 120 dots with quadratic radial distribution (ground clutter effect)
+- **Missile flight trails:** Dashed cyan lines from battery to target
+- **Battery position labels:** P1-P3 (Patriot), H1-H3 (Hawk) with type-coded icons
+- **Territory zone:** Dashed circle at defense zone perimeter
+- **findNearestTrack():** Centralized hit detection with proper coordinate conversion
+
+#### Game HUD Enhancements (GameHUD.cpp)
+- AN/TSQ-73 CONSOLE header
+- Controls help panel (1-3 PATRIOT, 4-6 HAWK, F=FIRE, A=ABORT)
+- Range band indicator (CRITICAL/SHORT/MEDIUM/LONG)
+- Available batteries list for selected track
+- Battery panel `>` marker for available batteries
+- Reload countdown timer and engaged target display (`->TK-003`)
+- Negative score turns red
+- Range displayed in both NM and km
+
+#### Fire Control System (FireControlSystem.cpp)
+- Battery positions scaled: Patriot 5→15 km, Hawk 3→8 km from center
+- Proportional to new radar range for realistic coverage layout
+
+#### Aircraft Generator (AircraftGenerator.cpp)
+- Spawn range now dynamic: `randomRange(maxRange * 0.85f, maxRange)` — 393-463 km
+
+#### Radar Scene Bug Fix (RadarScene.cpp)
+- Fixed critical touch-select bug: was using `getSweepAngle()` instead of radius for pixel range calculation
+- Delegated to `RadarDisplay::findNearestTrack()` with proper `convertToNodeSpace()`
+- Added click-empty-space deselection
+- Stub console output updated to show NM instead of km
+
+#### Test Suite Updates (212 tests — all passing)
+- `test_game_types.cpp`: Updated Patriot (160km), Hawk (45km), territory (25km), radar (463km); added `test_radar_range_nm` and `test_nm_km_conversion`
+- `test_missile_battery.cpp`: Out-of-range test updated (80km → 170km for Patriot 160km range)
+- `test_aircraft_generator.cpp`: Spawn range assertions updated (85km → 393km, 100km → 463km)
+- `test_cocos2dx_validation.cpp`: Stub mode radar constant updated (100km → 463km)
+
+---
+
 *This log will be updated with each subsequent commit.*

@@ -139,9 +139,12 @@ struct EngagementRecord {
 // ============================================================================
 
 namespace GameConstants {
-    // Radar
-    constexpr float RADAR_MAX_RANGE_KM = 100.0f;
-    constexpr float RADAR_SWEEP_RATE_RPM = 6.0f;      // Rotations per minute
+    // Radar — Raytheon AN/TPS-43E long-range surveillance radar
+    // Range: 250+ nautical miles (~463 km), well beyond earth's curvature
+    // Uses pulse-Doppler and MTI for beyond-horizon detection
+    constexpr float RADAR_MAX_RANGE_NM = 250.0f;       // Nautical miles
+    constexpr float RADAR_MAX_RANGE_KM = 463.0f;       // 250 NM in km
+    constexpr float RADAR_SWEEP_RATE_RPM = 6.0f;       // Rotations per minute
     constexpr float RADAR_SWEEP_RATE_DPS = RADAR_SWEEP_RATE_RPM * 6.0f; // Degrees/sec
     constexpr int   RADAR_RANGE_RINGS = 5;              // Number of range rings
     constexpr float BLIP_FADE_TIME = 10.0f;             // Seconds for blip to fade
@@ -149,8 +152,12 @@ namespace GameConstants {
     // IFF
     constexpr float IFF_INTERROGATION_TIME = 2.0f;      // Seconds to get IFF response
 
-    // Patriot Battery (MPMB)
-    constexpr float PATRIOT_MAX_RANGE = 70.0f;           // km
+    // Unit conversions
+    constexpr float NM_TO_KM = 1.852f;                  // 1 nautical mile = 1.852 km
+    constexpr float KM_TO_NM = 1.0f / NM_TO_KM;
+
+    // Patriot Battery (MPMB) — MIM-104
+    constexpr float PATRIOT_MAX_RANGE = 160.0f;          // km (~86 NM)
     constexpr float PATRIOT_MIN_RANGE = 3.0f;            // km
     constexpr float PATRIOT_MAX_ALT = 80000.0f;          // feet
     constexpr float PATRIOT_MIN_ALT = 1000.0f;           // feet
@@ -159,8 +166,8 @@ namespace GameConstants {
     constexpr float PATRIOT_MISSILE_SPEED = 1700.0f;     // m/s (Mach 5)
     constexpr float PATRIOT_KILL_PROB = 0.85f;           // Base kill probability
 
-    // Hawk Battery (HSAMB)
-    constexpr float HAWK_MAX_RANGE = 40.0f;              // km
+    // Hawk Battery (HSAMB) — MIM-23
+    constexpr float HAWK_MAX_RANGE = 45.0f;              // km (~24 NM)
     constexpr float HAWK_MIN_RANGE = 1.0f;               // km
     constexpr float HAWK_MAX_ALT = 45000.0f;             // feet
     constexpr float HAWK_MIN_ALT = 100.0f;               // feet (treetop)
@@ -176,8 +183,8 @@ namespace GameConstants {
     constexpr int SCORE_MISSILE_WASTED = -25;
     constexpr float SCORE_FIRST_SHOT_MULTIPLIER = 2.0f;
 
-    // Territory
-    constexpr float TERRITORY_RADIUS_KM = 10.0f;        // Inner defense zone
+    // Territory — inner defense zone
+    constexpr float TERRITORY_RADIUS_KM = 25.0f;        // ~13.5 NM
 }
 
 #endif // __GAME_TYPES_H__

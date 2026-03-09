@@ -3,7 +3,7 @@
 
 #if USE_COCOS2DX
 // ============================================================================
-// Cocos2d-x Game HUD
+// Cocos2d-x Game HUD — Phase 2 Enhanced
 // ============================================================================
 
 GameHUD* GameHUD::create()
@@ -27,37 +27,57 @@ bool GameHUD::init()
     score_ = 0;
     level_ = 1;
 
-    // Track Info Panel (right side)
+    // === HEADER ===
+    auto* headerLabel = cocos2d::Label::createWithSystemFont(
+        "AN/TSQ-73 CONSOLE", "Courier", 13);
+    headerLabel->setAnchorPoint(cocos2d::Vec2(0, 1));
+    headerLabel->setPosition(cocos2d::Vec2(10, -5));
+    headerLabel->setTextColor(cocos2d::Color4B(0, 255, 0, 255));
+    addChild(headerLabel);
+
+    // === TRACK INFO PANEL ===
     trackInfoLabel_ = cocos2d::Label::createWithSystemFont(
-        "NO TRACK SELECTED", "Courier", 12);
+        "NO TRACK SELECTED", "Courier", 11);
     trackInfoLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
-    trackInfoLabel_->setPosition(cocos2d::Vec2(10, -10));
+    trackInfoLabel_->setPosition(cocos2d::Vec2(10, -30));
     trackInfoLabel_->setTextColor(cocos2d::Color4B(0, 255, 0, 255));
     addChild(trackInfoLabel_);
 
-    // Battery Status Panel
+    // === BATTERY STATUS PANEL ===
     batteryStatusLabel_ = cocos2d::Label::createWithSystemFont(
-        "BATTERY STATUS", "Courier", 11);
+        "BATTERY STATUS", "Courier", 10);
     batteryStatusLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
-    batteryStatusLabel_->setPosition(cocos2d::Vec2(10, -150));
+    batteryStatusLabel_->setPosition(cocos2d::Vec2(10, -180));
     batteryStatusLabel_->setTextColor(cocos2d::Color4B(0, 200, 0, 255));
     addChild(batteryStatusLabel_);
 
-    // Score and Level
-    scoreLabel_ = cocos2d::Label::createWithSystemFont("SCORE: 0", "Courier", 14);
+    // === CONTROLS HELP ===
+    auto* controlsLabel = cocos2d::Label::createWithSystemFont(
+        "FIRE CONTROL:\n"
+        " 1-3 PATRIOT  4-6 HAWK\n"
+        " F=FIRE  A=ABORT\n"
+        " CLICK=SELECT TRACK",
+        "Courier", 9);
+    controlsLabel->setAnchorPoint(cocos2d::Vec2(0, 1));
+    controlsLabel->setPosition(cocos2d::Vec2(10, -370));
+    controlsLabel->setTextColor(cocos2d::Color4B(0, 150, 0, 180));
+    addChild(controlsLabel);
+
+    // === SCORE AND LEVEL ===
+    scoreLabel_ = cocos2d::Label::createWithSystemFont("SCORE: 0", "Courier", 13);
     scoreLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
-    scoreLabel_->setPosition(cocos2d::Vec2(10, -400));
+    scoreLabel_->setPosition(cocos2d::Vec2(10, -440));
     scoreLabel_->setTextColor(cocos2d::Color4B(0, 255, 0, 255));
     addChild(scoreLabel_);
 
-    levelLabel_ = cocos2d::Label::createWithSystemFont("LEVEL: 1", "Courier", 14);
+    levelLabel_ = cocos2d::Label::createWithSystemFont("LEVEL: 1", "Courier", 13);
     levelLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
-    levelLabel_->setPosition(cocos2d::Vec2(10, -420));
+    levelLabel_->setPosition(cocos2d::Vec2(10, -460));
     levelLabel_->setTextColor(cocos2d::Color4B(0, 255, 0, 255));
     addChild(levelLabel_);
 
-    // Message Log
-    messageLog_ = cocos2d::Label::createWithSystemFont("", "Courier", 10);
+    // === MESSAGE LOG ===
+    messageLog_ = cocos2d::Label::createWithSystemFont("", "Courier", 9);
     messageLog_->setAnchorPoint(cocos2d::Vec2(0, 0));
     messageLog_->setPosition(cocos2d::Vec2(10, 10));
     messageLog_->setTextColor(cocos2d::Color4B(0, 200, 0, 200));
@@ -101,35 +121,68 @@ void GameHUD::addMessage(const std::string& message)
 void GameHUD::updateTrackInfoPanel()
 {
     if (!trackManager_ || selectedTrackId_ < 0) {
-        trackInfoLabel_->setString("NO TRACK SELECTED");
+        trackInfoLabel_->setString(
+            "=== TRACK DATA ===\n"
+            "\n"
+            "  NO TRACK SELECTED\n"
+            "\n"
+            "  Click a blip on the\n"
+            "  radar to select.\n");
         return;
     }
 
     auto* track = trackManager_->getTrack(selectedTrackId_);
     if (!track) {
-        trackInfoLabel_->setString("TRACK LOST");
+        trackInfoLabel_->setString(
+            "=== TRACK DATA ===\n"
+            "\n"
+            "  ** TRACK LOST **\n");
         return;
     }
 
-    char info[512];
+    // Determine range band for engagement awareness
+    const char* rangeBand;
+    if (track->range <= 10.0f) rangeBand = "CRITICAL";
+    else if (track->range <= 40.0f) rangeBand = "SHORT";
+    else if (track->range <= 70.0f) rangeBand = "MEDIUM";
+    else rangeBand = "LONG";
+
+    char info[600];
     snprintf(info, sizeof(info),
         "=== TRACK DATA ===\n"
         "ID:    %s\n"
         "CLASS: %s\n"
         "ALT:   %s\n"
         "AZM:   %03d deg\n"
-        "RNG:   %.1f km\n"
+        "RNG:   %.0f NM (%.0f km) [%s]\n"
         "SPD:   %.0f kts\n"
-        "HDG:   %03d deg",
+        "HDG:   %03d deg\n"
+        "\n"
+        "AVAILABLE BATTERIES:",
         track->getTrackIdString().c_str(),
         track->getClassificationString().c_str(),
         track->getAltitudeString().c_str(),
         (int)track->azimuth,
-        track->range,
+        track->range * GameConstants::KM_TO_NM, track->range, rangeBand,
         track->speed,
         (int)track->heading);
 
-    trackInfoLabel_->setString(info);
+    std::string infoStr(info);
+
+    // Show which batteries can engage this track
+    if (fireControl_) {
+        auto available = fireControl_->getAvailableBatteries(selectedTrackId_,
+                                                              *trackManager_);
+        if (available.empty()) {
+            infoStr += "\n  (none in range)";
+        } else {
+            for (const auto& batName : available) {
+                infoStr += "\n  > " + batName;
+            }
+        }
+    }
+
+    trackInfoLabel_->setString(infoStr);
 }
 
 void GameHUD::updateBatteryStatusPanel()
@@ -139,8 +192,14 @@ void GameHUD::updateBatteryStatusPanel()
     std::string status = "=== BATTERY STATUS ===\n";
     auto batteries = fireControl_->getAllBatteryData();
 
+    // Determine which batteries can engage the selected track
+    std::vector<std::string> availableNames;
+    if (trackManager_ && selectedTrackId_ >= 0) {
+        availableNames = fireControl_->getAvailableBatteries(
+            selectedTrackId_, *trackManager_);
+    }
+
     for (const auto& bat : batteries) {
-        char line[128];
         const char* statusStr;
         switch (bat.status) {
             case BatteryStatus::READY:     statusStr = "RDY"; break;
@@ -152,10 +211,33 @@ void GameHUD::updateBatteryStatusPanel()
             default: statusStr = "---"; break;
         }
 
-        snprintf(line, sizeof(line), "%-10s [%s] %d/%d",
+        // Mark available batteries with an arrow
+        bool isAvailable = false;
+        for (const auto& name : availableNames) {
+            if (name == bat.designation) { isAvailable = true; break; }
+        }
+
+        char line[128];
+        snprintf(line, sizeof(line), "%s%-10s [%s] %d/%d",
+            isAvailable ? ">" : " ",
             bat.designation.c_str(), statusStr,
             bat.missilesRemaining, bat.maxMissiles);
         status += line;
+
+        // Show reload time if reloading
+        if (bat.status == BatteryStatus::RELOADING && bat.reloadTimeRemaining > 0) {
+            char reload[16];
+            snprintf(reload, sizeof(reload), " (%.0fs)", bat.reloadTimeRemaining);
+            status += reload;
+        }
+
+        // Show assigned track if engaged
+        if (bat.status == BatteryStatus::ENGAGED && bat.assignedTrackId >= 0) {
+            char assigned[16];
+            snprintf(assigned, sizeof(assigned), " ->TK-%03d", bat.assignedTrackId);
+            status += assigned;
+        }
+
         status += "\n";
     }
 
@@ -167,6 +249,13 @@ void GameHUD::updateScoreDisplay()
     char buf[32];
     snprintf(buf, sizeof(buf), "SCORE: %d", score_);
     scoreLabel_->setString(buf);
+
+    // Color score red if negative
+    if (score_ < 0) {
+        scoreLabel_->setTextColor(cocos2d::Color4B(255, 80, 80, 255));
+    } else {
+        scoreLabel_->setTextColor(cocos2d::Color4B(0, 255, 0, 255));
+    }
 
     snprintf(buf, sizeof(buf), "LEVEL: %d", level_);
     levelLabel_->setString(buf);

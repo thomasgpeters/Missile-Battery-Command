@@ -99,32 +99,18 @@ void RadarScene::initInputHandlers()
     // Mouse/touch listener for selecting tracks on radar
     auto listener = cocos2d::EventListenerTouchOneByOne::create();
     listener->onTouchBegan = [this](cocos2d::Touch* touch, cocos2d::Event* event) {
-        // Convert touch position to radar-relative coordinates
-        auto radarPos = radarDisplay_->getPosition();
+        // Convert touch position to radar-local coordinates
         auto touchPos = touch->getLocation();
-        auto relPos = touchPos - radarPos;
+        auto localPos = radarDisplay_->convertToNodeSpace(touchPos);
 
-        // Find nearest track to touch position
-        auto tracks = trackManager_.getAllTracks();
-        int nearestTrackId = -1;
-        float nearestDist = 20.0f;  // Max selection distance in pixels
-
-        for (const auto& track : tracks) {
-            float rad = track.azimuth * M_PI / 180.0f;
-            float pixelRange = (track.range / GameConstants::RADAR_MAX_RANGE_KM) *
-                               radarDisplay_->getSweepAngle(); // Use radius
-            cocos2d::Vec2 blipPos(pixelRange * std::sin(rad),
-                                   pixelRange * std::cos(rad));
-
-            float dist = relPos.distance(blipPos);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearestTrackId = track.trackId;
-            }
-        }
+        // Use RadarDisplay's findNearestTrack for accurate hit detection
+        int nearestTrackId = radarDisplay_->findNearestTrack(localPos, 20.0f);
 
         if (nearestTrackId >= 0) {
             onTrackSelected(nearestTrackId);
+        } else {
+            // Clicked empty space — deselect
+            onTrackSelected(-1);
         }
         return true;
     };
@@ -330,9 +316,11 @@ bool RadarScene::init()
     trackManager_.getIFFSystem().setErrorRate(0.0f);
 
     std::cout << "[RadarScene] Systems initialized." << std::endl;
-    std::cout << "  - 3x Patriot Missile Batteries (MPMB)" << std::endl;
-    std::cout << "  - 3x Hawk SAM Batteries (HSAMB)" << std::endl;
-    std::cout << "  - Radar range: " << GameConstants::RADAR_MAX_RANGE_KM << " km" << std::endl;
+    std::cout << "  - Radar: Raytheon AN/TPS-43E long-range surveillance" << std::endl;
+    std::cout << "  - Range: " << (int)GameConstants::RADAR_MAX_RANGE_NM
+              << " NM (" << (int)GameConstants::RADAR_MAX_RANGE_KM << " km)" << std::endl;
+    std::cout << "  - 3x Patriot Missile Batteries (MPMB) @ 160 km max" << std::endl;
+    std::cout << "  - 3x Hawk SAM Batteries (HSAMB) @ 45 km max" << std::endl;
     std::cout << "  - Sweep rate: " << GameConstants::RADAR_SWEEP_RATE_RPM << " RPM" << std::endl;
     std::cout << std::endl;
 
@@ -364,8 +352,8 @@ void RadarScene::spawnAircraft(float dt)
         std::cout << "[NEW CONTACT] " << data.getTrackIdString()
                   << " | Type: " << newAircraft->getTypeName()
                   << " | AZM: " << std::setw(3) << (int)data.azimuth << "\xC2\xB0"
-                  << " | RNG: " << std::setw(5) << std::fixed << std::setprecision(1)
-                  << data.range << " km"
+                  << " | RNG: " << std::setw(3) << (int)(data.range * GameConstants::KM_TO_NM)
+                  << " NM"
                   << " | ALT: " << data.getAltitudeString()
                   << " | SPD: " << (int)data.speed << " kts"
                   << " | IFF: " << data.getClassificationString()
@@ -413,7 +401,7 @@ void RadarScene::runGameLoop()
                       << std::setw(10) << "CLASS"
                       << std::setw(8) << "ALT"
                       << std::setw(8) << "AZM"
-                      << std::setw(10) << "RNG(km)"
+                      << std::setw(10) << "RNG(NM)"
                       << std::setw(10) << "SPD(kts)"
                       << std::setw(8) << "HDG"
                       << std::endl;
@@ -426,7 +414,7 @@ void RadarScene::runGameLoop()
                           << std::setw(8) << track.getAltitudeString()
                           << std::setw(8) << (int)track.azimuth
                           << std::setw(10) << std::fixed << std::setprecision(1)
-                          << track.range
+                          << (track.range * GameConstants::KM_TO_NM)
                           << std::setw(10) << (int)track.speed
                           << std::setw(8) << (int)track.heading
                           << std::endl;
