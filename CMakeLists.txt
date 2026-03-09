@@ -108,6 +108,66 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Resources")
     )
 endif()
 
+# ============================================================================
+# Test Suite
+# ============================================================================
+enable_testing()
+
+# Testable game library (everything except main.cpp)
+set(GAME_LIB_SOURCES
+    src/AppDelegate.cpp
+    src/RadarScene.cpp
+    src/RadarDisplay.cpp
+    src/Aircraft.cpp
+    src/AircraftGenerator.cpp
+    src/IFFSystem.cpp
+    src/TrackManager.cpp
+    src/MissileBattery.cpp
+    src/FireControlSystem.cpp
+    src/GameHUD.cpp
+    src/GameConfig.cpp
+)
+
+add_library(MissileBatteryCommandLib STATIC ${GAME_LIB_SOURCES} ${GAME_HEADERS})
+
+target_include_directories(MissileBatteryCommandLib PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+if(COCOS2D_FOUND)
+    target_link_libraries(MissileBatteryCommandLib cocos2d)
+    target_compile_definitions(MissileBatteryCommandLib PUBLIC USE_COCOS2DX=1)
+else()
+    target_compile_definitions(MissileBatteryCommandLib PUBLIC USE_COCOS2DX=0)
+endif()
+
+# Test executable
+set(TEST_SOURCES
+    tests/test_main.cpp
+    tests/test_cocos2dx_validation.cpp
+    tests/test_game_types.cpp
+    tests/test_aircraft.cpp
+    tests/test_iff_system.cpp
+    tests/test_track_manager.cpp
+    tests/test_missile_battery.cpp
+    tests/test_aircraft_generator.cpp
+    tests/test_fire_control.cpp
+    tests/test_game_config.cpp
+)
+
+add_executable(MissileBatteryCommandTests ${TEST_SOURCES})
+
+target_include_directories(MissileBatteryCommandTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+target_link_libraries(MissileBatteryCommandTests MissileBatteryCommandLib)
+
+# Register with CTest
+add_test(NAME AllTests COMMAND MissileBatteryCommandTests)
+
 message(STATUS "Missile Battery Command - Build configured")
 message(STATUS "  cocos2d-x: ${COCOS2D_FOUND}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "  Tests: ON")
