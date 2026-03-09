@@ -46,6 +46,7 @@ bool RadarScene::init()
     // Initialize subsystems
     aircraftGenerator_.init(gameConfig_.getLevel());
     fireControlSystem_.init();
+    battalionHQ_.init(0.5f, 0.0f);  // HQ at center of defense zone
 
     // Set up IFF error rate from level config
     trackManager_.getIFFSystem().setErrorRate(gameConfig_.getIFFErrorRate());
@@ -85,6 +86,8 @@ void RadarScene::initHUD()
                                          visibleSize.height * 0.95f));
     gameHUD_->setTrackManager(&trackManager_);
     gameHUD_->setFireControlSystem(&fireControlSystem_);
+    gameHUD_->setThreatBoard(&threatBoard_);
+    gameHUD_->setBattalionHQ(&battalionHQ_);
     gameHUD_->setLevel(gameConfig_.getLevel());
     addChild(gameHUD_, 2);
 }
@@ -161,6 +164,8 @@ void RadarScene::update(float dt)
     updateAircraft(dt);
     trackManager_.update(dt);
     fireControlSystem_.update(dt);
+    threatBoard_.update(trackManager_);
+    battalionHQ_.update(dt);
     checkEngagements(dt);
     cleanupDestroyedAircraft();
     checkGameOver();
@@ -319,16 +324,19 @@ bool RadarScene::init()
     GameConfig::getInstance().setLevel(1);
     aircraftGenerator_.init(1);
     fireControlSystem_.init();
+    battalionHQ_.init(0.5f, 0.0f);
     trackManager_.getIFFSystem().setErrorRate(0.0f);
 
     std::cout << "[RadarScene] Systems initialized." << std::endl;
+    std::cout << "  - HQ: Mobile AN/TSQ-73 Missile Minder Battery" << std::endl;
     std::cout << "  - Radar: Raytheon AN/TPS-43E long-range surveillance" << std::endl;
     std::cout << "  - Range: " << (int)GameConstants::RADAR_MAX_RANGE_NM
               << " NM (" << (int)GameConstants::RADAR_MAX_RANGE_KM << " km)" << std::endl;
     std::cout << "  - 3x Patriot Missile Batteries (MPMB) @ 160 km / AN/MPQ-53" << std::endl;
     std::cout << "  - 3x Hawk SAM Batteries (HSAMB) @ 45 km / AN/MPQ-46 HPI / 33 msls" << std::endl;
-    std::cout << "  - 3x Javelin MANPADS Platoons @ 4 km / CLU IR/FLIR" << std::endl;
+    std::cout << "  - 3x Javelin MANPADS Platoons @ 55 km / CLU IR/FLIR" << std::endl;
     std::cout << "  - Sweep rate: " << GameConstants::RADAR_SWEEP_RATE_RPM << " RPM" << std::endl;
+    std::cout << "  - Threat Board: Scope 2 (top 5 threats)" << std::endl;
     std::cout << std::endl;
 
     return true;
@@ -340,6 +348,8 @@ void RadarScene::update(float dt)
     updateAircraft(dt);
     trackManager_.update(dt);
     fireControlSystem_.update(dt);
+    threatBoard_.update(trackManager_);
+    battalionHQ_.update(dt);
     cleanupDestroyedAircraft();
 }
 

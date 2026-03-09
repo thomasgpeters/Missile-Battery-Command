@@ -23,6 +23,8 @@ bool GameHUD::init()
 
     trackManager_ = nullptr;
     fireControl_ = nullptr;
+    threatBoard_ = nullptr;
+    battalionHQ_ = nullptr;
     selectedTrackId_ = -1;
     score_ = 0;
     level_ = 1;
@@ -51,6 +53,22 @@ bool GameHUD::init()
     batteryStatusLabel_->setTextColor(cocos2d::Color4B(0, 200, 0, 255));
     addChild(batteryStatusLabel_);
 
+    // === THREAT BOARD (SCOPE 2) ===
+    threatBoardLabel_ = cocos2d::Label::createWithSystemFont(
+        "THREAT BOARD", "Courier", 10);
+    threatBoardLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
+    threatBoardLabel_->setPosition(cocos2d::Vec2(10, -350));
+    threatBoardLabel_->setTextColor(cocos2d::Color4B(255, 200, 0, 255));
+    addChild(threatBoardLabel_);
+
+    // === HQ STATUS ===
+    hqStatusLabel_ = cocos2d::Label::createWithSystemFont(
+        "HQ: OPERATIONAL", "Courier", 10);
+    hqStatusLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
+    hqStatusLabel_->setPosition(cocos2d::Vec2(10, -480));
+    hqStatusLabel_->setTextColor(cocos2d::Color4B(0, 200, 0, 255));
+    addChild(hqStatusLabel_);
+
     // === CONTROLS HELP ===
     auto* controlsLabel = cocos2d::Label::createWithSystemFont(
         "FIRE CONTROL:\n"
@@ -60,20 +78,20 @@ bool GameHUD::init()
         " CLICK=SELECT TRACK",
         "Courier", 9);
     controlsLabel->setAnchorPoint(cocos2d::Vec2(0, 1));
-    controlsLabel->setPosition(cocos2d::Vec2(10, -370));
+    controlsLabel->setPosition(cocos2d::Vec2(10, -520));
     controlsLabel->setTextColor(cocos2d::Color4B(0, 150, 0, 180));
     addChild(controlsLabel);
 
     // === SCORE AND LEVEL ===
     scoreLabel_ = cocos2d::Label::createWithSystemFont("SCORE: 0", "Courier", 13);
     scoreLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
-    scoreLabel_->setPosition(cocos2d::Vec2(10, -440));
+    scoreLabel_->setPosition(cocos2d::Vec2(10, -590));
     scoreLabel_->setTextColor(cocos2d::Color4B(0, 255, 0, 255));
     addChild(scoreLabel_);
 
     levelLabel_ = cocos2d::Label::createWithSystemFont("LEVEL: 1", "Courier", 13);
     levelLabel_->setAnchorPoint(cocos2d::Vec2(0, 1));
-    levelLabel_->setPosition(cocos2d::Vec2(10, -460));
+    levelLabel_->setPosition(cocos2d::Vec2(10, -610));
     levelLabel_->setTextColor(cocos2d::Color4B(0, 255, 0, 255));
     addChild(levelLabel_);
 
@@ -92,6 +110,8 @@ void GameHUD::update(float dt)
 {
     updateTrackInfoPanel();
     updateBatteryStatusPanel();
+    updateThreatBoardPanel();
+    updateHQStatusPanel();
     updateScoreDisplay();
     updateMessageLog();
 }
@@ -269,6 +289,71 @@ void GameHUD::updateScoreDisplay()
 
     snprintf(buf, sizeof(buf), "LEVEL: %d", level_);
     levelLabel_->setString(buf);
+}
+
+void GameHUD::updateThreatBoardPanel()
+{
+    if (!threatBoard_) {
+        threatBoardLabel_->setString("=== SCOPE 2: THREAT BOARD ===\n  (not connected)");
+        return;
+    }
+
+    std::string text = "=== SCOPE 2: THREAT BOARD ===\n";
+
+    if (threatBoard_->getThreatCount() == 0) {
+        text += "  NO THREATS\n";
+    } else {
+        for (int i = 0; i < threatBoard_->getThreatCount(); i++) {
+            auto* t = threatBoard_->getThreat(i);
+            char line[192];
+            snprintf(line, sizeof(line),
+                "#%d %s %s %.0fkm %03d° %.0fkts %s\n",
+                i + 1,
+                t->trackIdString.c_str(),
+                t->classification.c_str(),
+                t->range, (int)t->azimuth,
+                t->speed,
+                t->inbound ? "INBOUND" : "OUTBND");
+            text += line;
+        }
+    }
+
+    threatBoardLabel_->setString(text);
+}
+
+void GameHUD::updateHQStatusPanel()
+{
+    if (!battalionHQ_) {
+        hqStatusLabel_->setString("HQ: ---");
+        return;
+    }
+
+    auto data = battalionHQ_->getData();
+    char buf[256];
+
+    if (data.isRelocating) {
+        snprintf(buf, sizeof(buf),
+            "HQ: %s | RADAR:%s COMMS:%s | ETA:%.0fs",
+            data.statusString.c_str(),
+            data.radarOnline ? "ON" : "OFF",
+            data.commsOnline ? "ON" : "OFF",
+            data.relocateTimeRemaining);
+    } else {
+        snprintf(buf, sizeof(buf),
+            "HQ: %s | RADAR:%s COMMS:%s",
+            data.statusString.c_str(),
+            data.radarOnline ? "ON" : "OFF",
+            data.commsOnline ? "ON" : "OFF");
+    }
+
+    hqStatusLabel_->setString(buf);
+
+    // Color-code HQ status
+    if (data.status == HQStatus::OPERATIONAL) {
+        hqStatusLabel_->setTextColor(cocos2d::Color4B(0, 200, 0, 255));
+    } else {
+        hqStatusLabel_->setTextColor(cocos2d::Color4B(255, 200, 0, 255));
+    }
 }
 
 void GameHUD::updateMessageLog()
