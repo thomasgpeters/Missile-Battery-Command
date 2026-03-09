@@ -183,6 +183,40 @@ target_link_libraries(MissileBatteryCommandTests MissileBatteryCommandLib)
 # Register with CTest
 add_test(NAME AllTests COMMAND MissileBatteryCommandTests)
 
+# Interactive test harness (ncurses)
+find_package(Curses QUIET)
+if(CURSES_FOUND)
+    set(HARNESS_TEST_SOURCES
+        tests/test_harness.cpp
+        tests/test_cocos2dx_validation.cpp
+        tests/test_game_types.cpp
+        tests/test_aircraft.cpp
+        tests/test_iff_system.cpp
+        tests/test_track_manager.cpp
+        tests/test_missile_battery.cpp
+        tests/test_aircraft_generator.cpp
+        tests/test_fire_control.cpp
+        tests/test_game_config.cpp
+        tests/test_airspace_manager.cpp
+        tests/test_data_card.cpp
+        tests/test_threat_board.cpp
+        tests/test_battalion_hq.cpp
+    )
+
+    add_executable(TestHarness ${HARNESS_TEST_SOURCES})
+
+    target_include_directories(TestHarness PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/tests
+        ${CURSES_INCLUDE_DIRS}
+    )
+
+    target_link_libraries(TestHarness MissileBatteryCommandLib ${CURSES_LIBRARIES})
+    message(STATUS "  Test Harness: ON (ncurses found)")
+else()
+    message(STATUS "  Test Harness: OFF (ncurses not found)")
+endif()
+
 message(STATUS "Missile Battery Command - Build configured")
 message(STATUS "  cocos2d-x: ${COCOS2D_FOUND}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")

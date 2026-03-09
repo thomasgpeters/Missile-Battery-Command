@@ -38,13 +38,15 @@ public:
 
     void beginSuite(const std::string& name) {
         currentSuite_ = {name, {}, 0, 0};
-        std::cout << "\n=== " << name << " ===" << std::endl;
+        if (!quiet_) std::cout << "\n=== " << name << " ===" << std::endl;
     }
 
     void endSuite() {
-        std::cout << "--- " << currentSuite_.name << ": "
-                  << currentSuite_.passed << " passed, "
-                  << currentSuite_.failed << " failed ---\n";
+        if (!quiet_) {
+            std::cout << "--- " << currentSuite_.name << ": "
+                      << currentSuite_.passed << " passed, "
+                      << currentSuite_.failed << " failed ---\n";
+        }
         suites_.push_back(currentSuite_);
         totalPassed_ += currentSuite_.passed;
         totalFailed_ += currentSuite_.failed;
@@ -53,13 +55,13 @@ public:
     void recordPass(const std::string& testName) {
         currentSuite_.results.push_back({testName, true, ""});
         currentSuite_.passed++;
-        std::cout << "  PASS  " << testName << std::endl;
+        if (!quiet_) std::cout << "  PASS  " << testName << std::endl;
     }
 
     void recordFail(const std::string& testName, const std::string& msg) {
         currentSuite_.results.push_back({testName, false, msg});
         currentSuite_.failed++;
-        std::cout << "  FAIL  " << testName << ": " << msg << std::endl;
+        if (!quiet_) std::cout << "  FAIL  " << testName << ": " << msg << std::endl;
     }
 
     int printSummary() {
@@ -82,12 +84,79 @@ public:
         return totalFailed_ > 0 ? 1 : 0;
     }
 
+    void reset() {
+        currentSuite_ = {};
+        suites_.clear();
+        totalPassed_ = 0;
+        totalFailed_ = 0;
+    }
+
+    const std::vector<TestSuite>& getSuites() const { return suites_; }
+    const TestSuite& getCurrentSuite() const { return currentSuite_; }
+    int getTotalPassed() const { return totalPassed_; }
+    int getTotalFailed() const { return totalFailed_; }
+
+    void setQuiet(bool q) { quiet_ = q; }
+    bool isQuiet() const { return quiet_; }
+
 private:
     TestRunner() = default;
     TestSuite currentSuite_;
     std::vector<TestSuite> suites_;
     int totalPassed_ = 0;
     int totalFailed_ = 0;
+    bool quiet_ = false;
+};
+
+// ============================================================================
+// Test Registry — for interactive test harness
+// ============================================================================
+
+struct RegisteredTest {
+    std::string name;
+    std::string suite;
+    std::function<void()> func;
+    bool enabled = true;
+};
+
+class TestRegistry {
+public:
+    static TestRegistry& instance() {
+        static TestRegistry reg;
+        return reg;
+    }
+
+    void registerTest(const std::string& suite, const std::string& name,
+                      std::function<void()> func) {
+        tests_.push_back({name, suite, func, true});
+    }
+
+    std::vector<RegisteredTest>& getTests() { return tests_; }
+    const std::vector<RegisteredTest>& getTests() const { return tests_; }
+
+    std::vector<std::string> getSuiteNames() const {
+        std::vector<std::string> names;
+        for (const auto& t : tests_) {
+            bool found = false;
+            for (const auto& n : names) {
+                if (n == t.suite) { found = true; break; }
+            }
+            if (!found) names.push_back(t.suite);
+        }
+        return names;
+    }
+
+    std::vector<RegisteredTest*> getTestsForSuite(const std::string& suite) {
+        std::vector<RegisteredTest*> result;
+        for (auto& t : tests_) {
+            if (t.suite == suite) result.push_back(&t);
+        }
+        return result;
+    }
+
+private:
+    TestRegistry() = default;
+    std::vector<RegisteredTest> tests_;
 };
 
 } // namespace mbc_test

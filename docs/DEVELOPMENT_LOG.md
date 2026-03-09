@@ -121,7 +121,7 @@ The project compiles cleanly with GCC 13.3 in stub mode (no cocos2d-x). The 60-s
 
 ---
 
-### Commit 2 — Phase 2: Graphical Radar Console & Raytheon AN/TPS-43E Upgrade
+### Commit 2: `824d699` — Phase 2: Graphical Radar Console & Raytheon AN/TPS-43E Upgrade
 
 **Date:** 2026-03-09
 **Branch:** `claude/aircraft-defense-game-bsd74`
@@ -183,6 +183,113 @@ The radar model was upgraded from a short-range 100 km system to the Raytheon AN
 - `test_missile_battery.cpp`: Out-of-range test updated (80km → 170km for Patriot 160km range)
 - `test_aircraft_generator.cpp`: Spawn range assertions updated (85km → 393km, 100km → 463km)
 - `test_cocos2dx_validation.cpp`: Stub mode radar constant updated (100km → 463km)
+
+---
+
+### Commit 3: `b393535` — Add 3 Javelin MANPADS, Hawk Ammo Logistics, and Tracking Radars
+
+**Date:** 2026-03-09
+**Branch:** `claude/aircraft-defense-game-bsd74`
+**Summary:** Added Javelin MANPADS platoons, Hawk ammunition logistics (3 loaders per battery), and tracking radar modeling (AN/MPQ-53 Patriot, AN/MPQ-46 HPI Hawk, IR Seeker Javelin). 245 tests passing.
+
+#### New Systems
+- **Javelin (FGM-148) MANPADS** — 3 platoons, 4.75 km range, FL015 ceiling, 6 missiles per team, IR seeker (no missile tracking)
+- **Hawk Ammunition Logistics** — 9 missile total stock per battery, 3 loaders, realistic reload from stock
+- **Tracking Radar Types** — AN/MPQ-53 (Patriot phased array), AN/MPQ-46 HPI (Hawk CW illuminator), IR Seeker (Javelin passive)
+- **Battery Engagement Statistics** — engagement count, hit count, miss count per battery
+
+---
+
+### Commit 4: `b485fa0` — Add Airspace Zones, Data Cards, and Battery Relocation
+
+**Date:** 2026-03-09
+**Branch:** `claude/aircraft-defense-game-bsd74`
+**Summary:** Added airspace management (NFZ, corridors, restricted areas), equipment/troop data cards, and battery relocation capability. 300 tests passing.
+
+#### New Systems
+- **AirspaceManager** — No-fly zones, air corridors, restricted areas with azimuth/range/altitude parameters, zone activation/deactivation
+- **DataCard** — Equipment cards (per weapon system), troop strength cards, intel summary cards with formatted text output
+- **Battery Relocation** — 45s Patriot / 30s Hawk / 15s Javelin relocation time, battery goes OFFLINE during move, position update on completion
+
+#### Bug Fix
+- Fixed `AirspaceManager::azimuthInSector()` private access error — moved from private to public static method
+
+---
+
+### Commit 5: `a9a2e5e` — Add Threat Board (Scope 2) and Mobile Battalion HQ
+
+**Date:** 2026-03-09
+**Branch:** `claude/aircraft-defense-game-bsd74`
+**Summary:** Implemented the AN/TSQ-73 Scope 2 threat board and mobile battalion HQ with relocation capability. 358 tests across 13 suites.
+
+#### New Systems
+
+**Threat Board (ThreatBoard.h/.cpp)**
+- Scope 2 heads-up display showing top 5 threats
+- Composite threat scoring: proximity (3x weight), speed, inbound status (+150), hostile classification (+100), low altitude (+30), inside territory (+200)
+- Inbound detection: aircraft heading within 60° of direct inbound heading
+- Closing rate calculation (radial velocity component in km/s)
+- Estimated time-to-territory for inbound threats
+- Formatted display with track ID, range, azimuth, speed, heading, inbound flag, closing rate, and ETA
+- 19 test functions covering ranking, filtering, formatting, and edge cases
+
+**Battalion HQ (BattalionHQ.h/.cpp)**
+- Mobile AN/TSQ-73 Missile Minder HQ Battery configuration
+- HQ status states: OPERATIONAL, RELOCATING, SETTING_UP, DEGRADED
+- 90-second relocation cycle: 30s teardown + 30s move + 30s setup
+- Phased recovery during setup: radar comes online in last half of setup phase, comms last
+- Cancel relocation capability for emergency halt
+- HQ data formatting with position, status, radar/comms online indicators
+- 35 personnel per HQ unit
+- 16 test functions covering lifecycle, phases, and data formatting
+
+**Game HUD Integration**
+- Added threat board panel (amber) showing top 5 threats
+- Added HQ status panel with color-coding (green=operational, amber=relocating)
+
+**RadarScene Integration**
+- `threatBoard_.update(trackManager_)` integrated into game loop
+- `battalionHQ_.update(dt)` integrated into game loop
+- HQ initialized at 0.5km from center
+- Stub console output updated: "Mobile AN/TSQ-73 Missile Minder Battery"
+
+---
+
+### Commit 6: `f953f71` — Add Interactive ncurses Test Harness
+
+**Date:** 2026-03-09
+**Branch:** `claude/aircraft-defense-game-bsd74`
+**Summary:** Created an interactive terminal UI test harness using ncurses for browsing, enabling/disabling, and running the 358 tests across 13 suites.
+
+#### Features
+- Suite expand/collapse navigation with cursor movement
+- Per-test and per-suite enable/disable toggles
+- Run enabled tests or run all tests
+- Search/filter by test name
+- Failures-only filter mode
+- Color-coded results (green=pass, red=fail, yellow=disabled)
+- Failure detail panel showing assertion messages
+- Batch mode (`--batch`) for CI integration
+- TestFramework extensions: TestRegistry, quiet mode, reset(), getSuites()
+- CMake FindCurses integration with conditional build
+
+---
+
+### Commit 7: `b39cca1` — Refactor Test Harness to Use JSON Manifest
+
+**Date:** 2026-03-09
+**Branch:** `claude/aircraft-defense-game-bsd74`
+**Summary:** Moved test suite definitions from hard-coded C++ to a separate JSON manifest file (`tests/test_manifest.json`), making it easier to add and reorganize tests.
+
+#### Changes
+- Created `tests/test_manifest.json` with all 13 suites and 358 test names
+- Rewrote `tests/test_harness.cpp` to load suite organization from JSON at startup
+- Added `buildTestMap()` — maps test name strings to function pointers via MAPTEST macro
+- Added `loadManifest()` — hand-rolled JSON parser for the specific manifest schema (no external dependencies)
+- Added `findManifestPath()` — searches relative paths from executable to locate manifest
+- `initHarness()` combines the function map with the manifest to build the test registry
+- Manifest path displayed in harness status bar
+- All 358 tests passing in both batch and interactive modes
 
 ---
 
