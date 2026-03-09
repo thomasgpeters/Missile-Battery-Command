@@ -18,6 +18,10 @@ void run_missile_battery_tests();
 void run_aircraft_generator_tests();
 void run_fire_control_tests();
 void run_game_config_tests();
+void run_airspace_manager_tests();
+void run_data_card_tests();
+void run_threat_board_tests();
+void run_battalion_hq_tests();
 
 int main(int argc, char** argv)
 {
@@ -44,6 +48,10 @@ int main(int argc, char** argv)
     run_aircraft_generator_tests();
     run_fire_control_tests();
     run_game_config_tests();
+    run_airspace_manager_tests();
+    run_data_card_tests();
+    run_threat_board_tests();
+    run_battalion_hq_tests();
 
     // Print summary and return exit code
     return TEST_SUMMARY();

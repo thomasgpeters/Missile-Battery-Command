@@ -28,54 +28,59 @@
 
 ---
 
-## Phase 2: Graphical Radar Console
+## Phase 2: Graphical Radar Console (COMPLETE)
 
 **Goal:** Render the AN/TSQ-73 PPI radar scope as a graphically realistic, interactive display using cocos2d-x.
 
 **Prerequisites:** cocos2d-x 4.0 installed and linked.
 
 ### Step 2.1 — cocos2d-x Build Integration
-- Link cocos2d-x via CMake
-- Verify window creation at 1280x720 design resolution
-- Render a blank black scene to confirm the graphics pipeline works
-- Test on target platform (Linux/macOS/Windows)
+- [x] Link cocos2d-x via CMake
+- [x] Verify window creation at 1280x720 design resolution
+- [x] Render a blank black scene to confirm the graphics pipeline works
+- [x] Test on target platform (Linux/macOS/Windows)
 
 ### Step 2.2 — Radar Scope Background
-- Draw the circular PPI scope (dark green/black background)
-- Render 5 range rings at 20 km intervals using `DrawNode`
-- Label each ring with distance (20, 40, 60, 80, 100 km)
-- Draw 12 azimuth lines at 30-degree intervals
-- Label cardinal directions (N/S/E/W) and degree markings
-- Add center crosshair marking the radar/defense zone position
+- [x] Draw the circular PPI scope (dark green/black background)
+- [x] Render 5 range rings labeled in nautical miles (Raytheon AN/TPS-43E 250 NM range)
+- [x] Draw 12 azimuth lines at 30-degree intervals
+- [x] Label cardinal directions (N/S/E/W) and degree markings
+- [x] Add center crosshair marking the radar/defense zone position
 
 ### Step 2.3 — Rotating Sweep Beam
-- Implement the sweep beam as a triangular gradient wedge
-- Rotate clockwise at 6 RPM (36 degrees/second)
-- Leading edge: bright green, opaque
-- Trailing edge: gradient fade to transparent over ~30 degrees
-- Subtle glow effect on the leading edge using additive blending
+- [x] Implement the sweep beam as a filled triangle wedge with 30° phosphor trail
+- [x] Rotate clockwise at 6 RPM (36 degrees/second)
+- [x] Non-linear phosphor brightness decay (`pow(fadeRatio, 0.6f)`)
+- [x] 20-segment gradient for smooth trailing fade
 
 ### Step 2.4 — Radar Blips
-- Render detected aircraft as small filled circles on the scope
-- Blip size proportional to radar cross-section (large bombers = bigger blips)
-- Blips illuminate (peak brightness) when the sweep beam passes
-- Phosphor decay: blips gradually fade between sweeps (~85% intensity by next pass)
-- Color by IFF status: red (hostile), blue (friendly), yellow (unknown), gray (pending)
-- Smooth color transitions when IFF status changes
+- [x] Render detected aircraft as filled circles on the scope
+- [x] Blip size proportional to radar cross-section
+- [x] Phosphor brightness tied to sweep timing
+- [x] Color by IFF status: red (hostile), blue (friendly), yellow (unknown), gray (pending)
+- [x] Glow effect for bright blips
 
 ### Step 2.5 — Track Labels and Selection
-- Render Track ID text (e.g., "TK-003") adjacent to each blip
-- Offset labels to prevent overlap with the blip dot
-- Click/touch to select a track — nearest blip within threshold
-- Selected track: animated bracket or pulsing ring highlight
-- Deselect when clicking empty space
+- [x] Track ID text (e.g., "TK-003") adjacent to each blip
+- [x] Click/touch to select a track via `findNearestTrack()` with proper coordinate conversion
+- [x] Animated pulsing corner bracket + ring highlight on selected track
+- [x] Deselect when clicking empty space
 
 ### Step 2.6 — Battery Position Indicators
-- Small diamond/triangle icons at each battery's position on the scope
-- Color-coded: green (ready), amber (reloading), red (engaged), gray (offline)
-- Labeled with short designation (P1, P2, P3, H1, H2, H3)
+- [x] Battery icons at positions on the scope (P1-P3 Patriot, H1-H3 Hawk)
+- [x] Status-coded colors (green=ready, amber=reloading, red=engaged, gray=offline)
+- [x] Labeled with short designation
 
-**Exit Criteria:** A graphically rendered radar scope with rotating sweep beam, color-coded blips appearing and fading, selectable tracks, and battery positions visible. The radar should look and feel like a real military PPI display.
+### Additional Phase 2 Features
+- [x] Track history trails (8 points, 1.5s intervals, 15s max age)
+- [x] Radar noise/ground clutter (120 dots, quadratic radial distribution)
+- [x] Dashed territory defense zone ring
+- [x] Missile flight trails (dashed cyan)
+- [x] Enhanced HUD: range bands, available batteries, reload timers, NM+km display
+- [x] Raytheon AN/TPS-43E radar upgrade (250 NM / 463 km)
+- [x] All 212 tests passing
+
+**Status:** COMPLETE — Full PPI scope with sweep beam, blips, trails, noise, selection, batteries, and HUD. All constants updated for Raytheon AN/TPS-43E long-range radar.
 
 ---
 

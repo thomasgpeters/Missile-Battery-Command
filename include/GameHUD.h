@@ -4,6 +4,8 @@
 #include "GameTypes.h"
 #include "TrackManager.h"
 #include "FireControlSystem.h"
+#include "ThreatBoard.h"
+#include "BattalionHQ.h"
 
 #if USE_COCOS2DX
 #include "cocos2d.h"
@@ -22,6 +24,8 @@ public:
     // Data sources
     void setTrackManager(TrackManager* mgr) { trackManager_ = mgr; }
     void setFireControlSystem(FireControlSystem* fcs) { fireControl_ = fcs; }
+    void setThreatBoard(ThreatBoard* tb) { threatBoard_ = tb; }
+    void setBattalionHQ(BattalionHQ* hq) { battalionHQ_ = hq; }
 
     // Update displayed information
     void setSelectedTrack(int trackId);
@@ -32,6 +36,8 @@ public:
 private:
     TrackManager* trackManager_;
     FireControlSystem* fireControl_;
+    ThreatBoard* threatBoard_;
+    BattalionHQ* battalionHQ_;
     int selectedTrackId_;
     int score_;
     int level_;
@@ -39,6 +45,8 @@ private:
     // UI Elements
     cocos2d::Label* trackInfoLabel_;
     cocos2d::Label* batteryStatusLabel_;
+    cocos2d::Label* threatBoardLabel_;
+    cocos2d::Label* hqStatusLabel_;
     cocos2d::Label* scoreLabel_;
     cocos2d::Label* levelLabel_;
     cocos2d::Label* messageLog_;
@@ -48,6 +56,8 @@ private:
 
     void updateTrackInfoPanel();
     void updateBatteryStatusPanel();
+    void updateThreatBoardPanel();
+    void updateHQStatusPanel();
     void updateScoreDisplay();
     void updateMessageLog();
 };
@@ -62,6 +72,8 @@ public:
 
     void setTrackManager(TrackManager* mgr) { trackManager_ = mgr; }
     void setFireControlSystem(FireControlSystem* fcs) { fireControl_ = fcs; }
+    void setThreatBoard(ThreatBoard* tb) { threatBoard_ = tb; }
+    void setBattalionHQ(BattalionHQ* hq) { battalionHQ_ = hq; }
     void setSelectedTrack(int trackId) { selectedTrackId_ = trackId; }
     void setScore(int score) { score_ = score; }
     void setLevel(int level) { level_ = level; }
@@ -70,6 +82,8 @@ public:
 private:
     TrackManager* trackManager_ = nullptr;
     FireControlSystem* fireControl_ = nullptr;
+    ThreatBoard* threatBoard_ = nullptr;
+    BattalionHQ* battalionHQ_ = nullptr;
     int selectedTrackId_ = -1;
     int score_ = 0;
     int level_ = 1;

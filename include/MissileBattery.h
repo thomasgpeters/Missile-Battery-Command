@@ -43,12 +43,35 @@ public:
     bool hasEngagementResult() const { return hasResult_; }
     void clearEngagementResult() { hasResult_ = false; }
 
+    // Battery relocation — goes offline during move, redeploys at new position
+    bool relocate(float newRange, float newAzimuth);
+    bool isRelocating() const { return isRelocating_; }
+    float getRelocateTimeRemaining() const { return relocateTimeRemaining_; }
+    PolarCoord getPosition() const { return position_; }
+    PolarCoord getRelocateDestination() const { return relocateDestination_; }
+
+    // Engagement stats
+    int getEngagementCount() const { return engagementCount_; }
+    int getHitCount() const { return hitCount_; }
+    int getMissCount() const { return missCount_; }
+
+    // Ammunition logistics
+    int getTotalMissileStock() const { return totalMissileStock_; }
+    int getLoaderCount() const { return loaderCount_; }
+
+    // Tracking radar info
+    const std::string& getTrackingRadarType() const { return trackingRadarType_; }
+    bool hasMissileTracking() const { return hasMissileTracking_; }
+    int getMaxSimultaneousEngagements() const { return maxSimultaneousEngagements_; }
+
 private:
     std::string designation_;
     BatteryType type_;
     BatteryStatus status_;
     int missilesRemaining_;
     int maxMissiles_;
+    int totalMissileStock_;      // Total missiles in battery stock
+    int loaderCount_;            // Number of loaders for reload ops
     float reloadTimeRemaining_;
     float reloadTime_;
     float maxRange_;
@@ -58,6 +81,21 @@ private:
     float missileSpeed_;       // m/s
     float baseKillProbability_;
     PolarCoord position_;
+
+    // Tracking radar
+    std::string trackingRadarType_;
+    bool hasMissileTracking_;
+    int maxSimultaneousEngagements_;
+
+    // Relocation state
+    bool isRelocating_;
+    float relocateTimeRemaining_;
+    PolarCoord relocateDestination_;
+
+    // Engagement stats
+    int engagementCount_;
+    int hitCount_;
+    int missCount_;
 
     // Engagement state
     int assignedTrackId_;

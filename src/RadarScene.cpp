@@ -46,6 +46,7 @@ bool RadarScene::init()
     // Initialize subsystems
     aircraftGenerator_.init(gameConfig_.getLevel());
     fireControlSystem_.init();
+    battalionHQ_.init(0.5f, 0.0f);  // HQ at center of defense zone
 
     // Set up IFF error rate from level config
     trackManager_.getIFFSystem().setErrorRate(gameConfig_.getIFFErrorRate());
@@ -85,6 +86,8 @@ void RadarScene::initHUD()
                                          visibleSize.height * 0.95f));
     gameHUD_->setTrackManager(&trackManager_);
     gameHUD_->setFireControlSystem(&fireControlSystem_);
+    gameHUD_->setThreatBoard(&threatBoard_);
+    gameHUD_->setBattalionHQ(&battalionHQ_);
     gameHUD_->setLevel(gameConfig_.getLevel());
     addChild(gameHUD_, 2);
 }
@@ -99,32 +102,18 @@ void RadarScene::initInputHandlers()
     // Mouse/touch listener for selecting tracks on radar
     auto listener = cocos2d::EventListenerTouchOneByOne::create();
     listener->onTouchBegan = [this](cocos2d::Touch* touch, cocos2d::Event* event) {
-        // Convert touch position to radar-relative coordinates
-        auto radarPos = radarDisplay_->getPosition();
+        // Convert touch position to radar-local coordinates
         auto touchPos = touch->getLocation();
-        auto relPos = touchPos - radarPos;
+        auto localPos = radarDisplay_->convertToNodeSpace(touchPos);
 
-        // Find nearest track to touch position
-        auto tracks = trackManager_.getAllTracks();
-        int nearestTrackId = -1;
-        float nearestDist = 20.0f;  // Max selection distance in pixels
-
-        for (const auto& track : tracks) {
-            float rad = track.azimuth * M_PI / 180.0f;
-            float pixelRange = (track.range / GameConstants::RADAR_MAX_RANGE_KM) *
-                               radarDisplay_->getSweepAngle(); // Use radius
-            cocos2d::Vec2 blipPos(pixelRange * std::sin(rad),
-                                   pixelRange * std::cos(rad));
-
-            float dist = relPos.distance(blipPos);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearestTrackId = track.trackId;
-            }
-        }
+        // Use RadarDisplay's findNearestTrack for accurate hit detection
+        int nearestTrackId = radarDisplay_->findNearestTrack(localPos, 20.0f);
 
         if (nearestTrackId >= 0) {
             onTrackSelected(nearestTrackId);
+        } else {
+            // Clicked empty space — deselect
+            onTrackSelected(-1);
         }
         return true;
     };
@@ -149,6 +138,12 @@ void RadarScene::initInputHandlers()
                 onBatteryAssign("HAWK-2"); break;
             case cocos2d::EventKeyboard::KeyCode::KEY_6:
                 onBatteryAssign("HAWK-3"); break;
+            case cocos2d::EventKeyboard::KeyCode::KEY_7:
+                onBatteryAssign("JAVELIN-1"); break;
+            case cocos2d::EventKeyboard::KeyCode::KEY_8:
+                onBatteryAssign("JAVELIN-2"); break;
+            case cocos2d::EventKeyboard::KeyCode::KEY_9:
+                onBatteryAssign("JAVELIN-3"); break;
             case cocos2d::EventKeyboard::KeyCode::KEY_F:
                 onFireAuthorized(); break;
             case cocos2d::EventKeyboard::KeyCode::KEY_A:
@@ -169,6 +164,8 @@ void RadarScene::update(float dt)
     updateAircraft(dt);
     trackManager_.update(dt);
     fireControlSystem_.update(dt);
+    threatBoard_.update(trackManager_);
+    battalionHQ_.update(dt);
     checkEngagements(dt);
     cleanupDestroyedAircraft();
     checkGameOver();
@@ -327,13 +324,19 @@ bool RadarScene::init()
     GameConfig::getInstance().setLevel(1);
     aircraftGenerator_.init(1);
     fireControlSystem_.init();
+    battalionHQ_.init(0.5f, 0.0f);
     trackManager_.getIFFSystem().setErrorRate(0.0f);
 
     std::cout << "[RadarScene] Systems initialized." << std::endl;
-    std::cout << "  - 3x Patriot Missile Batteries (MPMB)" << std::endl;
-    std::cout << "  - 3x Hawk SAM Batteries (HSAMB)" << std::endl;
-    std::cout << "  - Radar range: " << GameConstants::RADAR_MAX_RANGE_KM << " km" << std::endl;
+    std::cout << "  - HQ: Mobile AN/TSQ-73 Missile Minder Battery" << std::endl;
+    std::cout << "  - Radar: Raytheon AN/TPS-43E long-range surveillance" << std::endl;
+    std::cout << "  - Range: " << (int)GameConstants::RADAR_MAX_RANGE_NM
+              << " NM (" << (int)GameConstants::RADAR_MAX_RANGE_KM << " km)" << std::endl;
+    std::cout << "  - 3x Patriot Missile Batteries (MPMB) @ 160 km / AN/MPQ-53" << std::endl;
+    std::cout << "  - 3x Hawk SAM Batteries (HSAMB) @ 45 km / AN/MPQ-46 HPI / 33 msls" << std::endl;
+    std::cout << "  - 3x Javelin MANPADS Platoons @ 55 km / CLU IR/FLIR" << std::endl;
     std::cout << "  - Sweep rate: " << GameConstants::RADAR_SWEEP_RATE_RPM << " RPM" << std::endl;
+    std::cout << "  - Threat Board: Scope 2 (top 5 threats)" << std::endl;
     std::cout << std::endl;
 
     return true;
@@ -345,6 +348,8 @@ void RadarScene::update(float dt)
     updateAircraft(dt);
     trackManager_.update(dt);
     fireControlSystem_.update(dt);
+    threatBoard_.update(trackManager_);
+    battalionHQ_.update(dt);
     cleanupDestroyedAircraft();
 }
 
@@ -364,8 +369,8 @@ void RadarScene::spawnAircraft(float dt)
         std::cout << "[NEW CONTACT] " << data.getTrackIdString()
                   << " | Type: " << newAircraft->getTypeName()
                   << " | AZM: " << std::setw(3) << (int)data.azimuth << "\xC2\xB0"
-                  << " | RNG: " << std::setw(5) << std::fixed << std::setprecision(1)
-                  << data.range << " km"
+                  << " | RNG: " << std::setw(3) << (int)(data.range * GameConstants::KM_TO_NM)
+                  << " NM"
                   << " | ALT: " << data.getAltitudeString()
                   << " | SPD: " << (int)data.speed << " kts"
                   << " | IFF: " << data.getClassificationString()
@@ -413,7 +418,7 @@ void RadarScene::runGameLoop()
                       << std::setw(10) << "CLASS"
                       << std::setw(8) << "ALT"
                       << std::setw(8) << "AZM"
-                      << std::setw(10) << "RNG(km)"
+                      << std::setw(10) << "RNG(NM)"
                       << std::setw(10) << "SPD(kts)"
                       << std::setw(8) << "HDG"
                       << std::endl;
@@ -426,7 +431,7 @@ void RadarScene::runGameLoop()
                           << std::setw(8) << track.getAltitudeString()
                           << std::setw(8) << (int)track.azimuth
                           << std::setw(10) << std::fixed << std::setprecision(1)
-                          << track.range
+                          << (track.range * GameConstants::KM_TO_NM)
                           << std::setw(10) << (int)track.speed
                           << std::setw(8) << (int)track.heading
                           << std::endl;

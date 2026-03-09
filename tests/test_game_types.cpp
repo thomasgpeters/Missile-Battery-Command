@@ -11,7 +11,17 @@
 // ---------------------------------------------------------------------------
 void test_radar_constants()
 {
-    ASSERT_NEAR(100.0f, GameConstants::RADAR_MAX_RANGE_KM, 0.01f);
+    ASSERT_NEAR(463.0f, GameConstants::RADAR_MAX_RANGE_KM, 0.01f);
+}
+
+void test_radar_range_nm()
+{
+    ASSERT_NEAR(250.0f, GameConstants::RADAR_MAX_RANGE_NM, 0.01f);
+}
+
+void test_nm_km_conversion()
+{
+    ASSERT_NEAR(1.852f, GameConstants::NM_TO_KM, 0.001f);
 }
 
 void test_radar_sweep_rate()
@@ -23,7 +33,7 @@ void test_radar_sweep_rate()
 
 void test_patriot_constants()
 {
-    ASSERT_NEAR(70.0f, GameConstants::PATRIOT_MAX_RANGE, 0.01f);
+    ASSERT_NEAR(160.0f, GameConstants::PATRIOT_MAX_RANGE, 0.01f);
     ASSERT_NEAR(3.0f, GameConstants::PATRIOT_MIN_RANGE, 0.01f);
     ASSERT_NEAR(80000.0f, GameConstants::PATRIOT_MAX_ALT, 0.01f);
     ASSERT_NEAR(1000.0f, GameConstants::PATRIOT_MIN_ALT, 0.01f);
@@ -32,7 +42,7 @@ void test_patriot_constants()
 
 void test_hawk_constants()
 {
-    ASSERT_NEAR(40.0f, GameConstants::HAWK_MAX_RANGE, 0.01f);
+    ASSERT_NEAR(45.0f, GameConstants::HAWK_MAX_RANGE, 0.01f);
     ASSERT_NEAR(1.0f, GameConstants::HAWK_MIN_RANGE, 0.01f);
     ASSERT_NEAR(45000.0f, GameConstants::HAWK_MAX_ALT, 0.01f);
     ASSERT_NEAR(100.0f, GameConstants::HAWK_MIN_ALT, 0.01f);
@@ -48,9 +58,24 @@ void test_scoring_constants()
     ASSERT_NEAR(2.0f, GameConstants::SCORE_FIRST_SHOT_MULTIPLIER, 0.01f);
 }
 
+void test_javelin_constants()
+{
+    ASSERT_NEAR(55.0f, GameConstants::JAVELIN_MAX_RANGE, 0.01f);
+    ASSERT_NEAR(0.5f, GameConstants::JAVELIN_MIN_RANGE, 0.01f);
+    ASSERT_NEAR(15000.0f, GameConstants::JAVELIN_MAX_ALT, 0.01f);
+    ASSERT_NEAR(0.0f, GameConstants::JAVELIN_MIN_ALT, 0.01f);
+    ASSERT_EQ(2, GameConstants::JAVELIN_MAX_MISSILES);
+}
+
+void test_hawk_stock_constants()
+{
+    ASSERT_EQ(33, GameConstants::HAWK_TOTAL_STOCK);
+    ASSERT_EQ(3, GameConstants::HAWK_LOADERS);
+}
+
 void test_territory_radius()
 {
-    ASSERT_NEAR(10.0f, GameConstants::TERRITORY_RADIUS_KM, 0.01f);
+    ASSERT_NEAR(25.0f, GameConstants::TERRITORY_RADIUS_KM, 0.01f);
 }
 
 // ---------------------------------------------------------------------------
@@ -149,9 +174,13 @@ void run_game_types_tests()
     TEST_SUITE("GameTypes");
 
     test_radar_constants();
+    test_radar_range_nm();
+    test_nm_km_conversion();
     test_radar_sweep_rate();
     test_patriot_constants();
     test_hawk_constants();
+    test_javelin_constants();
+    test_hawk_stock_constants();
     test_scoring_constants();
     test_territory_radius();
     test_polar_to_cartesian_north();

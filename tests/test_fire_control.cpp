@@ -12,7 +12,7 @@ void test_fcs_construction()
 {
     FireControlSystem fcs;
     fcs.init();
-    ASSERT_EQ(6, (int)fcs.getBatteries().size());
+    ASSERT_EQ(9, (int)fcs.getBatteries().size());
 }
 
 void test_fcs_has_3_patriots()
@@ -121,7 +121,7 @@ void test_fcs_all_battery_data()
     fcs.init();
 
     auto data = fcs.getAllBatteryData();
-    ASSERT_EQ(6, (int)data.size());
+    ASSERT_EQ(9, (int)data.size());
 }
 
 void test_fcs_all_batteries_ready()
@@ -220,6 +220,106 @@ void test_fcs_no_results_initially()
     ASSERT_EQ(0, (int)results.size());
 }
 
+// ---------------------------------------------------------------------------
+// Javelin platoons
+// ---------------------------------------------------------------------------
+void test_fcs_has_3_javelins()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    int javCount = 0;
+    for (const auto& bat : fcs.getBatteries()) {
+        if (bat->getType() == BatteryType::JAVELIN) javCount++;
+    }
+    ASSERT_EQ(3, javCount);
+}
+
+void test_fcs_javelin1_exists()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    ASSERT_NOT_NULL(fcs.getBattery("JAVELIN-1"));
+}
+
+void test_fcs_javelin2_exists()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    ASSERT_NOT_NULL(fcs.getBattery("JAVELIN-2"));
+}
+
+void test_fcs_javelin3_exists()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    ASSERT_NOT_NULL(fcs.getBattery("JAVELIN-3"));
+}
+
+// ---------------------------------------------------------------------------
+// Hawk ammo stock
+// ---------------------------------------------------------------------------
+void test_hawk_total_stock()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    auto* bat = fcs.getBattery("HAWK-1");
+    ASSERT_NOT_NULL(bat);
+    // Total stock = ready (3) + reserves (30) = 33
+    auto data = bat->getData();
+    ASSERT_EQ(GameConstants::HAWK_TOTAL_STOCK, data.totalMissileStock);
+}
+
+void test_hawk_has_3_loaders()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    auto* bat = fcs.getBattery("HAWK-2");
+    ASSERT_NOT_NULL(bat);
+    ASSERT_EQ(GameConstants::HAWK_LOADERS, bat->getLoaderCount());
+}
+
+// ---------------------------------------------------------------------------
+// Tracking radar info
+// ---------------------------------------------------------------------------
+void test_patriot_tracking_radar()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    auto* bat = fcs.getBattery("PATRIOT-1");
+    auto data = bat->getData();
+    ASSERT_STR_EQ("AN/MPQ-53", data.trackingRadarType);
+    ASSERT_TRUE(data.hasMissileTracking);
+}
+
+void test_hawk_tracking_radar()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    auto* bat = fcs.getBattery("HAWK-1");
+    auto data = bat->getData();
+    ASSERT_STR_EQ("AN/MPQ-46 HPI", data.trackingRadarType);
+    ASSERT_TRUE(data.hasMissileTracking);
+}
+
+void test_javelin_ir_seeker()
+{
+    FireControlSystem fcs;
+    fcs.init();
+
+    auto* bat = fcs.getBattery("JAVELIN-1");
+    auto data = bat->getData();
+    ASSERT_STR_EQ("CLU IR/FLIR", data.trackingRadarType);
+    ASSERT_FALSE(data.hasMissileTracking);  // Fire-and-forget
+}
+
 // ============================================================================
 void run_fire_control_tests()
 {
@@ -236,6 +336,10 @@ void run_fire_control_tests()
     test_fcs_patriot3_exists();
     test_fcs_hawk1_exists();
     test_fcs_hawk3_exists();
+    test_fcs_has_3_javelins();
+    test_fcs_javelin1_exists();
+    test_fcs_javelin2_exists();
+    test_fcs_javelin3_exists();
     test_fcs_all_battery_data();
     test_fcs_all_batteries_ready();
     test_fcs_available_batteries_in_range();
@@ -243,6 +347,11 @@ void run_fire_control_tests()
     test_fcs_reset();
     test_fcs_update_no_crash();
     test_fcs_no_results_initially();
+    test_hawk_total_stock();
+    test_hawk_has_3_loaders();
+    test_patriot_tracking_radar();
+    test_hawk_tracking_radar();
+    test_javelin_ir_seeker();
 
     TEST_SUITE_END();
 }

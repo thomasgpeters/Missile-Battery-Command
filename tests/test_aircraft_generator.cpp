@@ -83,8 +83,8 @@ void test_generator_spawned_aircraft_valid_range()
     }
 
     if (ac) {
-        // Should spawn at radar edge (85-100 km)
-        ASSERT_GE(ac->getRange(), 85.0f);
+        // Should spawn at radar edge (85-100% of 463 km)
+        ASSERT_GE(ac->getRange(), 393.0f);
     }
     ASSERT_NOT_NULL(ac);
     delete ac;
@@ -101,7 +101,7 @@ void test_generator_spawned_aircraft_valid_range_upper()
     }
 
     if (ac) {
-        ASSERT_LE(ac->getRange(), 100.0f);
+        ASSERT_LE(ac->getRange(), 463.0f);
     }
     ASSERT_NOT_NULL(ac);
     delete ac;

@@ -181,7 +181,7 @@ void test_stub_mode_functional()
     // This confirms the stub architecture is sound
 
     // GameConstants should be accessible
-    ASSERT_NEAR(100.0f, GameConstants::RADAR_MAX_RANGE_KM, 0.01f);
+    ASSERT_NEAR(463.0f, GameConstants::RADAR_MAX_RANGE_KM, 0.01f);
 
     // PolarCoord math should work
     PolarCoord p{50.0f, 90.0f};  // 50km due East

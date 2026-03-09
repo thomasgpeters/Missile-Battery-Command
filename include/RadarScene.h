@@ -8,6 +8,8 @@
 #include "FireControlSystem.h"
 #include "GameHUD.h"
 #include "GameConfig.h"
+#include "ThreatBoard.h"
+#include "BattalionHQ.h"
 #include <vector>
 #include <memory>
 
@@ -31,6 +33,8 @@ private:
     AircraftGenerator aircraftGenerator_;
     TrackManager trackManager_;
     FireControlSystem fireControlSystem_;
+    ThreatBoard threatBoard_;
+    BattalionHQ battalionHQ_;
     GameConfig& gameConfig_;
 
     // Display elements
@@ -87,6 +91,8 @@ private:
     AircraftGenerator aircraftGenerator_;
     TrackManager trackManager_;
     FireControlSystem fireControlSystem_;
+    ThreatBoard threatBoard_;
+    BattalionHQ battalionHQ_;
 
     int score_ = 0;
     bool gameOver_ = false;

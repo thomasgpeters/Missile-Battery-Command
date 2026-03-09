@@ -75,7 +75,7 @@ void test_can_engage_in_range()
 void test_cannot_engage_out_of_range()
 {
     MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 5.0f, 0.0f);
-    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 80.0f, 0.0f,
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 170.0f, 0.0f,
                 35000.0f, 500.0f, 180.0f, false);
     ac.setTrackId(1);
 
@@ -349,6 +349,182 @@ void test_abort_tracking()
     ASSERT_TRUE(bat.isReady());
 }
 
+// ---------------------------------------------------------------------------
+// Javelin battery
+// ---------------------------------------------------------------------------
+void test_javelin_construction()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    ASSERT_STR_EQ("JAVELIN-1", bat.getDesignation());
+}
+
+void test_javelin_type()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    ASSERT_TRUE(bat.getType() == BatteryType::JAVELIN);
+}
+
+void test_javelin_initial_missiles()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    ASSERT_EQ(GameConstants::JAVELIN_MAX_MISSILES, bat.getMissilesRemaining());
+}
+
+void test_javelin_can_engage_close_target()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    Aircraft ac(AircraftType::ATTACK_DRONE, 30.0f, 0.0f,
+                5000.0f, 200.0f, 180.0f, false);
+    ac.setTrackId(1);
+
+    ASSERT_TRUE(bat.canEngage(&ac));
+}
+
+void test_javelin_cannot_engage_high_alt()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 30.0f, 0.0f,
+                35000.0f, 500.0f, 180.0f, false);  // Too high for Javelin
+    ac.setTrackId(1);
+
+    ASSERT_FALSE(bat.canEngage(&ac));
+}
+
+void test_javelin_ir_seeker_no_missile_tracking()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    ASSERT_FALSE(bat.hasMissileTracking());
+}
+
+// ---------------------------------------------------------------------------
+// Hawk ammo stock
+// ---------------------------------------------------------------------------
+void test_hawk_missile_stock()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    // Ready: 3, Stock: 30 remaining, Total reported: 33
+    ASSERT_EQ(GameConstants::HAWK_TOTAL_STOCK, bat.getTotalMissileStock() + bat.getMissilesRemaining());
+}
+
+void test_hawk_loaders()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    ASSERT_EQ(GameConstants::HAWK_LOADERS, bat.getLoaderCount());
+}
+
+// ---------------------------------------------------------------------------
+// Tracking radar
+// ---------------------------------------------------------------------------
+void test_patriot_tracking_radar_type()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    ASSERT_STR_EQ("AN/MPQ-53", bat.getTrackingRadarType());
+    ASSERT_TRUE(bat.hasMissileTracking());
+}
+
+void test_hawk_tracking_radar_type()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    ASSERT_STR_EQ("AN/MPQ-46 HPI", bat.getTrackingRadarType());
+    ASSERT_TRUE(bat.hasMissileTracking());
+}
+
+// ---------------------------------------------------------------------------
+// Battery relocation
+// ---------------------------------------------------------------------------
+void test_relocate_sets_offline()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    ASSERT_TRUE(bat.relocate(20.0f, 90.0f));
+    ASSERT_TRUE(bat.getStatus() == BatteryStatus::OFFLINE);
+}
+
+void test_relocate_is_relocating()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    bat.relocate(12.0f, 180.0f);
+    ASSERT_TRUE(bat.isRelocating());
+}
+
+void test_relocate_cannot_while_engaged()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 50.0f, 0.0f,
+                35000.0f, 500.0f, 180.0f, false);
+    ac.setTrackId(1);
+    bat.engage(&ac);
+    ASSERT_FALSE(bat.relocate(20.0f, 90.0f));
+}
+
+void test_relocate_cannot_while_already_relocating()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    bat.relocate(12.0f, 180.0f);
+    ASSERT_FALSE(bat.relocate(15.0f, 270.0f));
+}
+
+void test_relocate_completes_patriot()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    bat.relocate(20.0f, 90.0f);
+    // Patriot relocation takes 60 seconds
+    for (int t = 0; t < 65; t++) bat.update(1.0f);
+    ASSERT_TRUE(bat.isReady());
+    ASSERT_FALSE(bat.isRelocating());
+}
+
+void test_relocate_completes_javelin()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    bat.relocate(5.0f, 120.0f);
+    // Javelin relocation takes 15 seconds
+    for (int t = 0; t < 20; t++) bat.update(1.0f);
+    ASSERT_TRUE(bat.isReady());
+}
+
+void test_relocate_updates_position()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    bat.relocate(12.0f, 180.0f);
+    // Hawk relocation takes 45 seconds
+    for (int t = 0; t < 50; t++) bat.update(1.0f);
+    auto pos = bat.getPosition();
+    ASSERT_NEAR(12.0f, pos.range, 0.01f);
+    ASSERT_NEAR(180.0f, pos.azimuth, 0.01f);
+}
+
+void test_relocate_clears_target()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    bat.relocate(20.0f, 90.0f);
+    ASSERT_EQ(-1, bat.getAssignedTrackId());
+}
+
+// ---------------------------------------------------------------------------
+// Engagement stats
+// ---------------------------------------------------------------------------
+void test_engagement_count_increments()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 5.0f, 0.0f);
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 50.0f, 0.0f,
+                35000.0f, 500.0f, 180.0f, false);
+    ac.setTrackId(1);
+    bat.engage(&ac);
+    for (int t = 0; t < 40; t++) bat.update(1.0f);
+    ASSERT_EQ(1, bat.getEngagementCount());
+}
+
+void test_hit_miss_count_adds_up()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 5.0f, 0.0f);
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 50.0f, 0.0f,
+                35000.0f, 500.0f, 180.0f, false);
+    ac.setTrackId(1);
+    bat.engage(&ac);
+    for (int t = 0; t < 40; t++) bat.update(1.0f);
+    ASSERT_EQ(bat.getEngagementCount(), bat.getHitCount() + bat.getMissCount());
+}
+
 // ============================================================================
 void run_missile_battery_tests()
 {
@@ -385,6 +561,26 @@ void run_missile_battery_tests()
     test_battery_data_range();
     test_battery_data_missiles();
     test_abort_tracking();
+    test_javelin_construction();
+    test_javelin_type();
+    test_javelin_initial_missiles();
+    test_javelin_can_engage_close_target();
+    test_javelin_cannot_engage_high_alt();
+    test_javelin_ir_seeker_no_missile_tracking();
+    test_hawk_missile_stock();
+    test_hawk_loaders();
+    test_patriot_tracking_radar_type();
+    test_hawk_tracking_radar_type();
+    test_relocate_sets_offline();
+    test_relocate_is_relocating();
+    test_relocate_cannot_while_engaged();
+    test_relocate_cannot_while_already_relocating();
+    test_relocate_completes_patriot();
+    test_relocate_completes_javelin();
+    test_relocate_updates_position();
+    test_relocate_clears_target();
+    test_engagement_count_increments();
+    test_hit_miss_count_adds_up();
 
     TEST_SUITE_END();
 }

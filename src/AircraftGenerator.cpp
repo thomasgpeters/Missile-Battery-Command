@@ -124,8 +124,9 @@ float AircraftGenerator::generateStartAzimuth()
 
 float AircraftGenerator::generateStartRange()
 {
-    // Aircraft appear at edge of radar range
-    return randomRange(85.0f, 100.0f);
+    // Aircraft appear at edge of radar range (85-100% of max range)
+    float maxRange = GameConstants::RADAR_MAX_RANGE_KM;
+    return randomRange(maxRange * 0.85f, maxRange);
 }
 
 float AircraftGenerator::generateAltitude(AircraftType type)
