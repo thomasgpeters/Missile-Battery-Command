@@ -429,6 +429,102 @@ void test_hawk_tracking_radar_type()
     ASSERT_TRUE(bat.hasMissileTracking());
 }
 
+// ---------------------------------------------------------------------------
+// Battery relocation
+// ---------------------------------------------------------------------------
+void test_relocate_sets_offline()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    ASSERT_TRUE(bat.relocate(20.0f, 90.0f));
+    ASSERT_TRUE(bat.getStatus() == BatteryStatus::OFFLINE);
+}
+
+void test_relocate_is_relocating()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    bat.relocate(12.0f, 180.0f);
+    ASSERT_TRUE(bat.isRelocating());
+}
+
+void test_relocate_cannot_while_engaged()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 50.0f, 0.0f,
+                35000.0f, 500.0f, 180.0f, false);
+    ac.setTrackId(1);
+    bat.engage(&ac);
+    ASSERT_FALSE(bat.relocate(20.0f, 90.0f));
+}
+
+void test_relocate_cannot_while_already_relocating()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    bat.relocate(12.0f, 180.0f);
+    ASSERT_FALSE(bat.relocate(15.0f, 270.0f));
+}
+
+void test_relocate_completes_patriot()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    bat.relocate(20.0f, 90.0f);
+    // Patriot relocation takes 60 seconds
+    for (int t = 0; t < 65; t++) bat.update(1.0f);
+    ASSERT_TRUE(bat.isReady());
+    ASSERT_FALSE(bat.isRelocating());
+}
+
+void test_relocate_completes_javelin()
+{
+    MissileBattery bat("JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f);
+    bat.relocate(5.0f, 120.0f);
+    // Javelin relocation takes 15 seconds
+    for (int t = 0; t < 20; t++) bat.update(1.0f);
+    ASSERT_TRUE(bat.isReady());
+}
+
+void test_relocate_updates_position()
+{
+    MissileBattery bat("HAWK-1", BatteryType::HAWK, 8.0f, 60.0f);
+    bat.relocate(12.0f, 180.0f);
+    // Hawk relocation takes 45 seconds
+    for (int t = 0; t < 50; t++) bat.update(1.0f);
+    auto pos = bat.getPosition();
+    ASSERT_NEAR(12.0f, pos.range, 0.01f);
+    ASSERT_NEAR(180.0f, pos.azimuth, 0.01f);
+}
+
+void test_relocate_clears_target()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f);
+    bat.relocate(20.0f, 90.0f);
+    ASSERT_EQ(-1, bat.getAssignedTrackId());
+}
+
+// ---------------------------------------------------------------------------
+// Engagement stats
+// ---------------------------------------------------------------------------
+void test_engagement_count_increments()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 5.0f, 0.0f);
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 50.0f, 0.0f,
+                35000.0f, 500.0f, 180.0f, false);
+    ac.setTrackId(1);
+    bat.engage(&ac);
+    for (int t = 0; t < 40; t++) bat.update(1.0f);
+    ASSERT_EQ(1, bat.getEngagementCount());
+}
+
+void test_hit_miss_count_adds_up()
+{
+    MissileBattery bat("PATRIOT-1", BatteryType::PATRIOT, 5.0f, 0.0f);
+    Aircraft ac(AircraftType::STRATEGIC_BOMBER, 50.0f, 0.0f,
+                35000.0f, 500.0f, 180.0f, false);
+    ac.setTrackId(1);
+    bat.engage(&ac);
+    for (int t = 0; t < 40; t++) bat.update(1.0f);
+    ASSERT_EQ(bat.getEngagementCount(), bat.getHitCount() + bat.getMissCount());
+}
+
 // ============================================================================
 void run_missile_battery_tests()
 {
@@ -475,6 +571,16 @@ void run_missile_battery_tests()
     test_hawk_loaders();
     test_patriot_tracking_radar_type();
     test_hawk_tracking_radar_type();
+    test_relocate_sets_offline();
+    test_relocate_is_relocating();
+    test_relocate_cannot_while_engaged();
+    test_relocate_cannot_while_already_relocating();
+    test_relocate_completes_patriot();
+    test_relocate_completes_javelin();
+    test_relocate_updates_position();
+    test_relocate_clears_target();
+    test_engagement_count_increments();
+    test_hit_miss_count_adds_up();
 
     TEST_SUITE_END();
 }

@@ -63,6 +63,8 @@ set(GAME_SOURCES
     src/FireControlSystem.cpp
     src/GameHUD.cpp
     src/GameConfig.cpp
+    src/AirspaceManager.cpp
+    src/DataCard.cpp
 )
 
 set(GAME_HEADERS
@@ -78,6 +80,8 @@ set(GAME_HEADERS
     include/GameHUD.h
     include/GameConfig.h
     include/GameTypes.h
+    include/AirspaceManager.h
+    include/DataCard.h
 )
 
 # ============================================================================
@@ -126,6 +130,8 @@ set(GAME_LIB_SOURCES
     src/FireControlSystem.cpp
     src/GameHUD.cpp
     src/GameConfig.cpp
+    src/AirspaceManager.cpp
+    src/DataCard.cpp
 )
 
 add_library(MissileBatteryCommandLib STATIC ${GAME_LIB_SOURCES} ${GAME_HEADERS})
@@ -153,6 +159,8 @@ set(TEST_SOURCES
     tests/test_aircraft_generator.cpp
     tests/test_fire_control.cpp
     tests/test_game_config.cpp
+    tests/test_airspace_manager.cpp
+    tests/test_data_card.cpp
 )
 
 add_executable(MissileBatteryCommandTests ${TEST_SOURCES})

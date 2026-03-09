@@ -14,7 +14,14 @@ MissileBattery::MissileBattery(const std::string& designation, BatteryType type,
     , missileFlightElapsed_(0.0f)
     , lastResult_(EngagementResult::ABORTED)
     , hasResult_(false)
+    , isRelocating_(false)
+    , relocateTimeRemaining_(0.0f)
+    , engagementCount_(0)
+    , hitCount_(0)
+    , missCount_(0)
 {
+    relocateDestination_.range = 0.0f;
+    relocateDestination_.azimuth = 0.0f;
     position_.range = posRange;
     position_.azimuth = posAzimuth;
 
@@ -83,11 +90,14 @@ void MissileBattery::update(float dt)
                 std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
                 float killProb = calculateKillProbability(currentTarget_);
+                engagementCount_++;
                 if (currentTarget_ && currentTarget_->isAlive() && dist(rng) < killProb) {
                     lastResult_ = EngagementResult::HIT;
                     currentTarget_->destroy();
+                    hitCount_++;
                 } else {
                     lastResult_ = EngagementResult::MISS;
+                    missCount_++;
                 }
 
                 hasResult_ = true;
@@ -120,6 +130,21 @@ void MissileBattery::update(float dt)
             if (reloadTimeRemaining_ <= 0.0f) {
                 reloadTimeRemaining_ = 0.0f;
                 status_ = BatteryStatus::READY;
+            }
+            break;
+        }
+
+        case BatteryStatus::OFFLINE: {
+            // Handle relocation countdown
+            if (isRelocating_) {
+                relocateTimeRemaining_ -= dt;
+                if (relocateTimeRemaining_ <= 0.0f) {
+                    // Relocation complete — deploy at new position
+                    position_ = relocateDestination_;
+                    isRelocating_ = false;
+                    relocateTimeRemaining_ = 0.0f;
+                    status_ = BatteryStatus::READY;
+                }
             }
             break;
         }
@@ -193,6 +218,35 @@ BatteryData MissileBattery::getData() const
     data.hasMissileTracking = hasMissileTracking_;
     data.maxSimultaneousEngagements = maxSimultaneousEngagements_;
     return data;
+}
+
+bool MissileBattery::relocate(float newRange, float newAzimuth)
+{
+    // Cannot relocate while engaged or already relocating
+    if (status_ == BatteryStatus::ENGAGED) return false;
+    if (isRelocating_) return false;
+    if (status_ == BatteryStatus::DESTROYED) return false;
+
+    relocateDestination_.range = newRange;
+    relocateDestination_.azimuth = newAzimuth;
+    isRelocating_ = true;
+
+    // Relocation time based on battery type:
+    //   Patriot: ~60 min to emplace, simplified to 60 seconds game time
+    //   Hawk:    ~45 min, simplified to 45 seconds
+    //   Javelin: ~10 min (foot mobile), simplified to 15 seconds
+    switch (type_) {
+        case BatteryType::PATRIOT: relocateTimeRemaining_ = 60.0f; break;
+        case BatteryType::HAWK:    relocateTimeRemaining_ = 45.0f; break;
+        case BatteryType::JAVELIN: relocateTimeRemaining_ = 15.0f; break;
+    }
+
+    // Battery goes offline during move
+    status_ = BatteryStatus::OFFLINE;
+    currentTarget_ = nullptr;
+    assignedTrackId_ = -1;
+
+    return true;
 }
 
 float MissileBattery::calculateKillProbability(const Aircraft* target) const

@@ -43,6 +43,18 @@ public:
     bool hasEngagementResult() const { return hasResult_; }
     void clearEngagementResult() { hasResult_ = false; }
 
+    // Battery relocation — goes offline during move, redeploys at new position
+    bool relocate(float newRange, float newAzimuth);
+    bool isRelocating() const { return isRelocating_; }
+    float getRelocateTimeRemaining() const { return relocateTimeRemaining_; }
+    PolarCoord getPosition() const { return position_; }
+    PolarCoord getRelocateDestination() const { return relocateDestination_; }
+
+    // Engagement stats
+    int getEngagementCount() const { return engagementCount_; }
+    int getHitCount() const { return hitCount_; }
+    int getMissCount() const { return missCount_; }
+
     // Ammunition logistics
     int getTotalMissileStock() const { return totalMissileStock_; }
     int getLoaderCount() const { return loaderCount_; }
@@ -74,6 +86,16 @@ private:
     std::string trackingRadarType_;
     bool hasMissileTracking_;
     int maxSimultaneousEngagements_;
+
+    // Relocation state
+    bool isRelocating_;
+    float relocateTimeRemaining_;
+    PolarCoord relocateDestination_;
+
+    // Engagement stats
+    int engagementCount_;
+    int hitCount_;
+    int missCount_;
 
     // Engagement state
     int assignedTrackId_;
