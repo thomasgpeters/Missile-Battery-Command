@@ -95,15 +95,15 @@ export class RadarDisplay extends Component {
         g.fill();
 
         // Scope border
-        g.strokeColor = new Color(0, 80, 0, 255);
-        g.lineWidth = 2;
+        g.strokeColor = new Color(0, 160, 0, 255);
+        g.lineWidth = 3;
         g.circle(0, 0, this.radius);
         g.stroke();
     }
 
     private drawRangeRings(): void {
         const g = this.graphics!;
-        g.strokeColor = new Color(0, 40, 0, 180);
+        g.strokeColor = new Color(0, 100, 0, 255);
         g.lineWidth = 1;
 
         for (let i = 1; i <= GameConstants.RADAR_RANGE_RINGS; i++) {
@@ -115,7 +115,7 @@ export class RadarDisplay extends Component {
 
     private drawAzimuthLines(): void {
         const g = this.graphics!;
-        g.strokeColor = new Color(0, 30, 0, 120);
+        g.strokeColor = new Color(0, 70, 0, 200);
         g.lineWidth = 1;
 
         for (let angle = 0; angle < 360; angle += 30) {
@@ -130,9 +130,9 @@ export class RadarDisplay extends Component {
 
     private drawCenterCrosshair(): void {
         const g = this.graphics!;
-        g.strokeColor = new Color(0, 100, 0, 200);
-        g.lineWidth = 1;
-        const size = 8;
+        g.strokeColor = new Color(0, 180, 0, 255);
+        g.lineWidth = 2;
+        const size = 10;
         g.moveTo(-size, 0);
         g.lineTo(size, 0);
         g.moveTo(0, -size);
@@ -145,7 +145,7 @@ export class RadarDisplay extends Component {
         const territoryPixels = this.kmToPixels(GameConstants.TERRITORY_RADIUS_KM);
 
         // Dashed circle (draw segments)
-        g.strokeColor = new Color(200, 100, 0, 100);
+        g.strokeColor = new Color(255, 140, 0, 180);
         g.lineWidth = 1;
         const segments = 36;
         for (let i = 0; i < segments; i += 2) {
@@ -166,15 +166,15 @@ export class RadarDisplay extends Component {
 
         // Phosphor trail (~30 degree fade)
         const trailDegrees = 30;
-        const trailSegments = 15;
+        const trailSegments = 20;
         for (let i = 0; i < trailSegments; i++) {
             const frac = i / trailSegments;
             const angleDeg = this.sweepAngle - trailDegrees * frac;
             const angleRad = (angleDeg * Math.PI) / 180;
-            const alpha = Math.floor(60 * (1 - frac));
+            const alpha = Math.floor(180 * (1 - frac));
 
             g.strokeColor = new Color(0, 255, 0, alpha);
-            g.lineWidth = 1;
+            g.lineWidth = 2;
             g.moveTo(0, 0);
             g.lineTo(
                 this.radius * Math.sin(angleRad),
@@ -184,8 +184,8 @@ export class RadarDisplay extends Component {
         }
 
         // Main sweep line
-        g.strokeColor = new Color(0, 255, 0, 150);
-        g.lineWidth = 2;
+        g.strokeColor = new Color(0, 255, 0, 255);
+        g.lineWidth = 2.5;
         g.moveTo(0, 0);
         g.lineTo(
             this.radius * Math.sin(sweepRad),
@@ -200,7 +200,7 @@ export class RadarDisplay extends Component {
             const dist = Math.sqrt(pt.x * pt.x + pt.y * pt.y);
             if (dist > this.radius) continue;
 
-            g.fillColor = new Color(0, 80, 0, Math.floor(pt.brightness * 40));
+            g.fillColor = new Color(0, 120, 0, Math.floor(pt.brightness * 80));
             g.circle(pt.x, pt.y, 1);
             g.fill();
         }
