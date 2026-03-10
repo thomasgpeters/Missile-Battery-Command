@@ -9,7 +9,7 @@ AN/TSQ-73 Missile Minder with fire controls and HUD.
 
 Download from: https://www.cocos.com/en/creator-download
 
-- Pick **Cocos Creator 3.8.x** (the project was authored against 3.8).
+- Pick **Cocos Creator 3.6.x or later** (the project targets 3.6+).
 - Install normally — Windows, macOS, or Linux AppImage all work.
 - On first launch it will ask you to sign in / create an account (free).
 
