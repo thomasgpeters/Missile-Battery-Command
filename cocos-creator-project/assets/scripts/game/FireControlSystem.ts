@@ -13,20 +13,32 @@ export class FireControlSystem {
     init(): void {
         this.batteries = [];
 
-        // 3 Patriot batteries in triangle formation (~15 km from center)
-        this.batteries.push(new MissileBattery('PATRIOT-1', BatteryType.PATRIOT, 15.0, 0.0));
-        this.batteries.push(new MissileBattery('PATRIOT-2', BatteryType.PATRIOT, 15.0, 120.0));
-        this.batteries.push(new MissileBattery('PATRIOT-3', BatteryType.PATRIOT, 15.0, 240.0));
+        // Realistic battalion spread: ~75 km across (batteries ~25 km apart)
+        // Each battery has its own organic radar and operates autonomously
+        // when HQ is offline. Positions are relative to the defended asset.
 
-        // 3 Hawk batteries between Patriots (~8 km)
-        this.batteries.push(new MissileBattery('HAWK-1', BatteryType.HAWK, 8.0, 60.0));
-        this.batteries.push(new MissileBattery('HAWK-2', BatteryType.HAWK, 8.0, 180.0));
-        this.batteries.push(new MissileBattery('HAWK-3', BatteryType.HAWK, 8.0, 300.0));
+        // 3 Patriot batteries in triangle formation (~35 km from center)
+        // Long-range / high-altitude umbrella — AN/MPQ-53 phased array
+        // Each Patriot covers 160 km range, so at 35 km out they overlap
+        // heavily and provide layered coverage over the entire zone.
+        this.batteries.push(new MissileBattery('PATRIOT-1', BatteryType.PATRIOT, 35.0, 0.0));
+        this.batteries.push(new MissileBattery('PATRIOT-2', BatteryType.PATRIOT, 35.0, 120.0));
+        this.batteries.push(new MissileBattery('PATRIOT-3', BatteryType.PATRIOT, 35.0, 240.0));
 
-        // 3 Javelin MANPADS platoons (~3 km, innermost defense)
-        this.batteries.push(new MissileBattery('JAVELIN-1', BatteryType.JAVELIN, 3.0, 30.0));
-        this.batteries.push(new MissileBattery('JAVELIN-2', BatteryType.JAVELIN, 3.0, 150.0));
-        this.batteries.push(new MissileBattery('JAVELIN-3', BatteryType.JAVELIN, 3.0, 270.0));
+        // 3 Hawk batteries between the Patriots (~20 km from center)
+        // Medium-range / low-altitude defense — AN/MPQ-46 HPI radar
+        // Covers the low-altitude corridor that Patriot can't reach,
+        // and fills gaps between the Patriot positions.
+        this.batteries.push(new MissileBattery('HAWK-1', BatteryType.HAWK, 20.0, 60.0));
+        this.batteries.push(new MissileBattery('HAWK-2', BatteryType.HAWK, 20.0, 180.0));
+        this.batteries.push(new MissileBattery('HAWK-3', BatteryType.HAWK, 20.0, 300.0));
+
+        // 3 Javelin MANPADS platoons (~8 km from center, inner ring)
+        // Last line of defense — CLU IR/FLIR seeker, no radar signature
+        // Close-in protection for the asset itself.
+        this.batteries.push(new MissileBattery('JAVELIN-1', BatteryType.JAVELIN, 8.0, 30.0));
+        this.batteries.push(new MissileBattery('JAVELIN-2', BatteryType.JAVELIN, 8.0, 150.0));
+        this.batteries.push(new MissileBattery('JAVELIN-3', BatteryType.JAVELIN, 8.0, 270.0));
     }
 
     update(dt: number): void {

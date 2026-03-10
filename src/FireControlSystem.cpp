@@ -7,34 +7,41 @@ void FireControlSystem::init()
 {
     batteries_.clear();
 
-    // Create 3 Patriot batteries in a triangle formation around the territory
-    // Positioned at ~15 km from center for optimal coverage of the defense zone
-    batteries_.push_back(std::make_unique<MissileBattery>(
-        "PATRIOT-1", BatteryType::PATRIOT, 15.0f, 0.0f));     // North
-    batteries_.push_back(std::make_unique<MissileBattery>(
-        "PATRIOT-2", BatteryType::PATRIOT, 15.0f, 120.0f));   // SE
-    batteries_.push_back(std::make_unique<MissileBattery>(
-        "PATRIOT-3", BatteryType::PATRIOT, 15.0f, 240.0f));   // SW
+    // Realistic battalion spread: ~75 km across (batteries ~25 km apart)
+    // Each battery has its own organic radar and operates autonomously
+    // when HQ is offline. Positions are relative to the defended asset.
 
-    // Create 3 Hawk batteries between the Patriots (closer to center)
-    // Positioned at ~8 km for short-range low-altitude defense
-    // Each battery: 33 missile stock, 3 loaders, AN/MPQ-46 HPI tracking radar
+    // 3 Patriot batteries in triangle formation (~35 km from center)
+    // Long-range / high-altitude umbrella — AN/MPQ-53 phased array
+    // Each Patriot covers 160 km range, so at 35 km out they overlap
+    // heavily and provide layered coverage over the entire zone.
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "HAWK-1", BatteryType::HAWK, 8.0f, 60.0f));          // NE
+        "PATRIOT-1", BatteryType::PATRIOT, 35.0f, 0.0f));     // North
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "HAWK-2", BatteryType::HAWK, 8.0f, 180.0f));         // South
+        "PATRIOT-2", BatteryType::PATRIOT, 35.0f, 120.0f));   // SE
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "HAWK-3", BatteryType::HAWK, 8.0f, 300.0f));         // NW
+        "PATRIOT-3", BatteryType::PATRIOT, 35.0f, 240.0f));   // SW
 
-    // Create 3 Javelin MANPADS platoons (shoulder-launched, innermost defense)
-    // Positioned at ~3 km from center — last line of defense
-    // Electronic comms link to AN/TSQ-73 for target cueing from Missile Minder
+    // 3 Hawk batteries between the Patriots (~20 km from center)
+    // Medium-range / low-altitude defense — AN/MPQ-46 HPI radar
+    // Covers the low-altitude corridor that Patriot can't reach,
+    // and fills gaps between the Patriot positions.
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "JAVELIN-1", BatteryType::JAVELIN, 3.0f, 30.0f));    // NNE
+        "HAWK-1", BatteryType::HAWK, 20.0f, 60.0f));          // NE
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "JAVELIN-2", BatteryType::JAVELIN, 3.0f, 150.0f));   // SSE
+        "HAWK-2", BatteryType::HAWK, 20.0f, 180.0f));         // South
     batteries_.push_back(std::make_unique<MissileBattery>(
-        "JAVELIN-3", BatteryType::JAVELIN, 3.0f, 270.0f));   // West
+        "HAWK-3", BatteryType::HAWK, 20.0f, 300.0f));         // NW
+
+    // 3 Javelin MANPADS platoons (~8 km from center, inner ring)
+    // Last line of defense — CLU IR/FLIR seeker, no radar signature
+    // Close-in protection for the asset itself.
+    batteries_.push_back(std::make_unique<MissileBattery>(
+        "JAVELIN-1", BatteryType::JAVELIN, 8.0f, 30.0f));     // NNE
+    batteries_.push_back(std::make_unique<MissileBattery>(
+        "JAVELIN-2", BatteryType::JAVELIN, 8.0f, 150.0f));    // SSE
+    batteries_.push_back(std::make_unique<MissileBattery>(
+        "JAVELIN-3", BatteryType::JAVELIN, 8.0f, 270.0f));    // West
 }
 
 void FireControlSystem::update(float dt)
