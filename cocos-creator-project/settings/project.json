@@ -1,0 +1,11 @@
+{
+    "engine": "cocos-creator",
+    "version": "3.8",
+    "description": "Missile Battery Command - AN/TSQ-73 Air Defense Game",
+    "design-resolution": {
+        "width": 1280,
+        "height": 960
+    },
+    "fit-width": false,
+    "fit-height": true
+}
