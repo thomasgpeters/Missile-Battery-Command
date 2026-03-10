@@ -83,10 +83,14 @@ public:
     // Get status string
     std::string getStatusString() const;
 
-    // Relocation timing
-    static constexpr float TEARDOWN_TIME = 30.0f;   // Time to pack up (game seconds)
-    static constexpr float MOVE_TIME = 30.0f;        // Transit time
-    static constexpr float SETUP_TIME = 30.0f;       // Time to set up at new location
+    // Relocation timing (game seconds representing real-world minutes)
+    // Actual AN/TSQ-73 battalion displacement: ~45 min teardown (power down,
+    // disconnect cables, lower AN/GSS-1 antenna, secure L-112 racks), convoy
+    // travel, ~45 min setup (erect antenna, lay cables, boot processors).
+    // Game uses 1 game-second = 1 real-minute time compression for relocation.
+    static constexpr float TEARDOWN_TIME = 45.0f;   // 45 min — power down, cables, antenna
+    static constexpr float MOVE_TIME = 30.0f;        // 30 min — convoy travel (variable)
+    static constexpr float SETUP_TIME = 45.0f;       // 45 min — erect, cable, boot L-112s
     static constexpr float TOTAL_RELOCATE_TIME = TEARDOWN_TIME + MOVE_TIME + SETUP_TIME;
 
     // Personnel
