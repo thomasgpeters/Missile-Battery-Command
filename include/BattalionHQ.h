@@ -18,11 +18,13 @@
 //   - Generator and power distribution
 //   - Command vehicle (M577 or equivalent)
 //
-// When the HQ relocates:
-//   - All batteries lose centralized fire control for the duration
-//   - Batteries can still operate independently (degraded mode)
-//   - Radar goes offline during teardown/setup
-//   - Relocation time: ~90 seconds (game time)
+// When the HQ displaces (NOTE: only HQ moves — batteries displace
+// independently on their own schedule, never all at once):
+//   - Batteries lose centralized fire distribution and long-range cueing
+//   - Each battery continues autonomous ops using its own organic radar
+//     (AN/MPQ-53 for Patriot, AN/MPQ-46 HPI for Hawk, CLU IR for Javelin)
+//   - HQ surveillance radar (AN/TPS-43E) goes offline during teardown/setup
+//   - HQ displacement: ~2 hours (45 min teardown + travel + 45 min setup)
 // ============================================================================
 
 enum class HQStatus {
