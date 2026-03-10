@@ -39,8 +39,8 @@ target.
 
 #### Patriot Batteries (MPMB) — MIM-104
 
-Three Patriot batteries positioned at ~15 km in a triangle formation around the
-defense zone. These are the long-range, high-altitude backbone of the defense.
+Three Patriot batteries positioned at ~35 km out in a triangle formation.
+These are the long-range, high-altitude backbone of the defense.
 
 | Spec | Value |
 |------|-------|
@@ -56,7 +56,7 @@ defense zone. These are the long-range, high-altitude backbone of the defense.
 
 #### Hawk Batteries (HSAMB) — MIM-23
 
-Three Hawk batteries at ~8 km, filling the gap between Patriot's minimum
+Three Hawk batteries at ~20 km out, filling the gap between Patriot's minimum
 altitude and the inner defense zone. Optimized for medium-range, low-to-medium
 altitude threats.
 
@@ -76,8 +76,9 @@ altitude threats.
 
 #### Javelin MANPADS Platoons — FGM-148
 
-Three Javelin platoons at ~3 km — the last line of defense. Shoulder-launched,
-infrared-guided, fire-and-forget. No radar signature, but limited range.
+Three Javelin platoons at ~8 km — the last line of defense just outside the
+asset perimeter. Shoulder-launched, infrared-guided, fire-and-forget. No
+radar signature, but limited range.
 
 | Spec | Value |
 |------|-------|
@@ -113,32 +114,41 @@ operations using their own organic radars.
 
 ## Defense Zone Layout
 
+The battalion is spread across roughly **75 km** — batteries are ~25 km apart
+from each other. This is a typical ADA Hawk battalion footprint.
+
 ```
-                         N (0°)
-                          |
-                   PATRIOT-1 (15km)
-                    /           \
-                   /             \
-          JAVELIN-1              HAWK-1
-           (3km)                 (8km)
-              |                    |
-              |    [ MINDER-HQ ]   |
-              |     (center)       |
-              |                    |
-          JAVELIN-3              HAWK-2
-           (3km)                 (8km)
-                   \             /
-                    \           /
-         PATRIOT-3    HAWK-3    PATRIOT-2
-          (15km)     (8km)      (15km)
-                          |
-                   JAVELIN-2 (3km)
-                          |
-                         S (180°)
+                              N (0°)
+                               |
+                        PATRIOT-1 (35km)
+                         /            \
+                        /              \
+                       /                \
+              JAVELIN-1 (8km)      HAWK-1 (20km)
+                    |                    |
+                    |                    |
+                    |   [ MINDER-HQ ]   |
+                    |    (center)        |
+                    |  [===25km===]      |
+                    |  asset radius      |
+                    |                    |
+              JAVELIN-3 (8km)      HAWK-2 (20km)
+                       \                /
+                        \              /
+                         \            /
+          PATRIOT-3 (35km)  HAWK-3   PATRIOT-2 (35km)
+                           (20km)
+                               |
+                        JAVELIN-2 (8km)
+                               |
+                              S (180°)
+
+  |<------------ ~75 km total footprint ------------>|
 ```
 
-Territory radius: 25 km — anything hostile that penetrates this zone has
-reached its target.
+Territory radius: 25 km — anything hostile that penetrates this inner zone
+has reached its target. The batteries are deployed well outside the territory
+to intercept threats before they get close.
 
 ## The Threat
 
