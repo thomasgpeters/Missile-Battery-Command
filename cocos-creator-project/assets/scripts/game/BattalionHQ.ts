@@ -26,10 +26,14 @@ export interface HQData {
 }
 
 export class BattalionHQ {
-    static readonly TEARDOWN_TIME = 30.0;
-    static readonly MOVE_TIME = 30.0;
-    static readonly SETUP_TIME = 30.0;
-    static readonly TOTAL_RELOCATE_TIME = 90.0;
+    // Real-world relocation timing (in game seconds, representing minutes)
+    // Actual AN/TSQ-73 battalion displacement: ~45 min teardown, travel,
+    // ~45 min setup. Total 90+ minutes plus convoy travel time.
+    // Game uses 1 game-second = 1 real-minute time compression for relocation.
+    static readonly TEARDOWN_TIME = 45.0;   // 45 minutes — power down, cables, antenna
+    static readonly MOVE_TIME = 30.0;        // 30 minutes — convoy travel (variable)
+    static readonly SETUP_TIME = 45.0;       // 45 minutes — erect antenna, cables, boot L-112s
+    static readonly TOTAL_RELOCATE_TIME = 120.0; // ~2 hours total displacement
     static readonly HQ_PERSONNEL = 35;
 
     private designation = 'MINDER-HQ';
