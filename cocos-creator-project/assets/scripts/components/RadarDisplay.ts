@@ -16,7 +16,7 @@ const { ccclass, property } = _decorator;
 @ccclass('RadarDisplay')
 export class RadarDisplay extends Component {
     @property
-    radius: number = 350;
+    radius: number = 280;
 
     private graphics: Graphics | null = null;
     private sweepAngle: number = 0;

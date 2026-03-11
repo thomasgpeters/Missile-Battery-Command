@@ -51,27 +51,29 @@ The components are all coded — you just need to wire them into a scene.
 
 ### 3d. Left Console
 
-**IMPORTANT: node order matters — frame FIRST (behind), radar SECOND (on top).**
+**IMPORTANT: node order matters — radar FIRST (behind), frame SECOND (on top
+as a bezel mask with transparent center).**
 
 1. Right-click Canvas → **Create → Empty Node**. Rename: `LeftConsole`.
 2. Set Position: **X = −350, Y = −40**.
 3. Add component **UITransform**, Content Size **720 × 720**.
 4. Right-click `LeftConsole` → **Create → 2D → Graphics**.
+   Rename: `LeftRadar`. Add component: **RadarDisplay**.
+5. Right-click `LeftConsole` → **Create → 2D → Graphics**.
    Rename: `LeftFrame`. Add component: **ConsoleFrame**.
    In Inspector, **uncheck** `Draw Background` (the shelter BG is drawn
    by the ShelterBG node, not each individual console).
-5. Right-click `LeftConsole` → **Create → 2D → Graphics**.
-   Rename: `LeftRadar`. Add component: **RadarDisplay**
-   (search "RadarDisplay" in Add Component).
+   Ensure `Scope Radius` matches the RadarDisplay `Radius` (both 280).
 
 ### 3e. Right Console
 
 1. Right-click Canvas → **Create → Empty Node**. Rename: `RightConsole`.
 2. Set Position: **X = +350, Y = −40**.
 3. Add component **UITransform**, Content Size **720 × 720**.
-4. Same as left — create `RightFrame` (+ ConsoleFrame, uncheck
-   `Draw Background`) **first**, then `RightRadar` (+ RadarDisplay)
-   **second**, so the radar draws on top of the frame.
+4. Same as left — create `RightRadar` (+ RadarDisplay) **first**,
+   then `RightFrame` (+ ConsoleFrame, uncheck `Draw Background`)
+   **second**. The frame draws on top as a bezel with a transparent
+   circular cutout so the radar sweep shows through.
 
 ### 3f. Overhead HUD Panel
 
@@ -104,16 +106,17 @@ The components are all coded — you just need to wire them into a scene.
 Canvas  [DualConsoleScene]
 ├── ShelterBG          [Graphics]           ← draws first (behind everything)
 ├── LeftConsole
-│   ├── LeftFrame      [Graphics, ConsoleFrame, drawBackground=OFF]
-│   └── LeftRadar      [Graphics, RadarDisplay]  ← on top of frame
+│   ├── LeftRadar      [Graphics, RadarDisplay]  ← radar behind
+│   └── LeftFrame      [Graphics, ConsoleFrame, drawBackground=OFF]  ← bezel on top
 ├── RightConsole
-│   ├── RightFrame     [Graphics, ConsoleFrame, drawBackground=OFF]
-│   └── RightRadar     [Graphics, RadarDisplay]  ← on top of frame
+│   ├── RightRadar     [Graphics, RadarDisplay]  ← radar behind
+│   └── RightFrame     [Graphics, ConsoleFrame, drawBackground=OFF]  ← bezel on top
 └── OverheadHUD        [Graphics, OverheadHUD]   ← draws last (on top)
 ```
 
 **Node order = draw order.** Earlier siblings render behind later ones.
-The frame (bezel, buttons, knobs) draws behind the radar scope.
+The frame draws ON TOP of the radar as a bezel mask with a transparent
+circular cutout in the center, so the sweep shows through the hole.
 
 ## 4. Preview
 
@@ -169,10 +172,11 @@ Check the Camera node is set to **UI** mode (Projection: Orthographic)
 and the Canvas is in the camera's visibility layers.
 
 **Radar sweep hidden behind the console frame?**
-Node order matters — the frame must be **above** (earlier) the radar in the
-Hierarchy so it draws first. The radar renders on top. Also uncheck
-`Draw Background` on ConsoleFrame in dual-console mode, otherwise each
-frame fills a full-screen rect that covers everything behind it.
+The radar node must come **before** the frame in the Hierarchy (earlier =
+behind). The frame draws on top as a bezel with a transparent circular
+cutout so the sweep shows through. Ensure `Scope Radius` on ConsoleFrame
+matches `Radius` on RadarDisplay (both default to 280). Also uncheck
+`Draw Background` on ConsoleFrame in dual-console mode.
 
 **Radar scope is tiny / off-center?**
 Verify the RadarDisplay node has UITransform Content Size of at least

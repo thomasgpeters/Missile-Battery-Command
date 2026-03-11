@@ -7,6 +7,10 @@ const { ccclass, property } = _decorator;
 // PPI radar scope. Based on the actual Display Console Assembly (items 11/13
 // in the S-280 shelter arrangement).
 //
+// The frame is drawn ON TOP of the RadarDisplay, with a transparent circular
+// cutout in the center so the radar sweep shows through. The frame acts as
+// a bezel/mask — the scope circle is never filled by this component.
+//
 // The console has:
 //   - A metal bezel/housing with rubber scope hood
 //   - Illuminated pushbutton panels flanking the scope (left and right)
@@ -64,18 +68,40 @@ export class ConsoleFrame extends Component {
         const r = this.scopeRadius;
         const pw = this.panelWidth;
 
-        // Main console housing — olive drab metal panel
+        // Main console housing — drawn as 4 sections around the scope
+        // center, leaving a transparent circular cutout for the radar.
         const housingLeft = -r - pw - 30;
         const housingRight = r + pw + 30;
         const housingTop = r + 40;
         const housingBottom = -r - 80;
-        const housingWidth = housingRight - housingLeft;
-        const housingHeight = housingTop - housingBottom;
 
-        // Console body — dark olive metal
-        g.fillColor = new Color(45, 48, 40, 255);
-        g.roundRect(housingLeft, housingBottom, housingWidth, housingHeight, 6);
+        const housingColor = new Color(45, 48, 40, 255);
+
+        // Top strip — full width, above the scope
+        g.fillColor = housingColor;
+        g.rect(housingLeft, r, housingRight - housingLeft, housingTop - r);
         g.fill();
+
+        // Bottom strip — full width, below the scope
+        g.fillColor = housingColor;
+        g.rect(housingLeft, housingBottom, housingRight - housingLeft, -r - housingBottom);
+        g.fill();
+
+        // Left strip — between top and bottom, left of the scope
+        g.fillColor = housingColor;
+        g.rect(housingLeft, -r, -r - housingLeft, r * 2);
+        g.fill();
+
+        // Right strip — between top and bottom, right of the scope
+        g.fillColor = housingColor;
+        g.rect(r, -r, housingRight - r, r * 2);
+        g.fill();
+
+        // Corner fills — the 4 square corners between the circle and the
+        // rectangular cutout are left by the strips above. Fill them with
+        // the housing color using small fan triangles to approximate the
+        // area between the inscribed circle and the bounding square.
+        this.fillCornerWedges(g, r, housingColor);
 
         // Subtle bevel highlight on top edge
         g.strokeColor = new Color(70, 75, 62, 255);
@@ -94,8 +120,45 @@ export class ConsoleFrame extends Component {
         // Console outline
         g.strokeColor = new Color(60, 65, 52, 255);
         g.lineWidth = 1;
-        g.roundRect(housingLeft, housingBottom, housingWidth, housingHeight, 6);
+        g.roundRect(housingLeft, housingBottom,
+            housingRight - housingLeft, housingTop - housingBottom, 6);
         g.stroke();
+    }
+
+    // Fill the 4 corner wedges between the scope circle and the square
+    // bounding box. Each wedge is the area in the corner that the straight
+    // rect strips don't cover — the gap between the circle arc and the
+    // square edge. We draw each as a filled polygon: two corner points of
+    // the square plus arc segments along the circle.
+    private fillCornerWedges(g: Graphics, r: number, color: Color): void {
+        g.fillColor = color;
+        const steps = 12; // segments per quarter arc
+
+        // Four corners: top-left, top-right, bottom-right, bottom-left
+        // Each defined by its square corner and the arc start/end angles
+        const corners = [
+            { cx: -r, cy:  r, startDeg: 90,  endDeg: 180 }, // top-left
+            { cx:  r, cy:  r, startDeg: 0,   endDeg: 90  }, // top-right
+            { cx:  r, cy: -r, startDeg: 270, endDeg: 360 }, // bottom-right
+            { cx: -r, cy: -r, startDeg: 180, endDeg: 270 }, // bottom-left
+        ];
+
+        for (const corner of corners) {
+            // Start at the square corner
+            g.moveTo(corner.cx, corner.cy);
+
+            // Draw arc from startDeg to endDeg along the scope circle
+            for (let i = 0; i <= steps; i++) {
+                const angle = (corner.startDeg + (corner.endDeg - corner.startDeg) * i / steps) * Math.PI / 180;
+                const ax = r * Math.cos(angle);
+                const ay = r * Math.sin(angle);
+                g.lineTo(ax, ay);
+            }
+
+            // Close back to the corner
+            g.lineTo(corner.cx, corner.cy);
+            g.fill();
+        }
     }
 
     private drawScopeBezel(): void {
@@ -103,13 +166,12 @@ export class ConsoleFrame extends Component {
         const r = this.scopeRadius;
 
         // Rubber scope hood — annular ring AROUND the PPI scope.
-        // We must NOT fill the center or we'll paint over the radar display.
-        // Draw the ring as a thick stroke instead of filled circles.
+        // The center is left fully transparent so the radar shows through.
 
         // Outer rubber hood ring (wide dark band around scope edge)
         g.strokeColor = new Color(20, 20, 20, 255);
         g.lineWidth = 18;
-        g.circle(0, 0, r + 9);  // centered in the 18px band
+        g.circle(0, 0, r + 9);
         g.stroke();
 
         // Inner hood bevel highlight
@@ -124,7 +186,7 @@ export class ConsoleFrame extends Component {
         g.circle(0, 0, r + 18);
         g.stroke();
 
-        // Inner bezel ring
+        // Inner bezel ring — sharp edge where scope glass meets the hood
         g.strokeColor = new Color(50, 55, 45, 255);
         g.lineWidth = 2;
         g.circle(0, 0, r + 1);
