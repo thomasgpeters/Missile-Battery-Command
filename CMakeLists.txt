@@ -39,7 +39,7 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
 
     # Include cocos2d-x from its root so all internal variables and macros
     # (use_cocos2dx_compile_define, etc.) are properly initialized.
-    add_subdirectory(${COCOS2DX_ROOT} ${ENGINE_BINARY_PATH}/cocos2d-x)
+    add_subdirectory(${COCOS2DX_ROOT} ${CMAKE_BINARY_DIR}/cocos2d-x)
     set(COCOS2D_FOUND TRUE)
 else()
     message(WARNING
