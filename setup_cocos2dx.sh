@@ -103,8 +103,14 @@ else
     python download-deps.py --remove-download yes 2>/dev/null || \
     echo "  NOTE: download-deps.py failed — you may need to run it manually."
 
-    # Update submodules
-    git submodule update --init --depth 1 2>/dev/null || true
+    # NOTE: We intentionally skip 'git submodule update'. The submodules
+    # (ccs-res, bindings-generator, etc.) are only needed for cocos2d-x's
+    # own test suite and Python bindings — not for building the game.
+    # They also use the deprecated git:// protocol which GitHub no longer
+    # supports, causing "Operation timed out" errors.
+    #
+    # If you do need submodules for development, first rewrite the protocol:
+    #   git config --global url."https://".insteadOf git://
 
     cd "$SCRIPT_DIR"
 fi
