@@ -5,16 +5,13 @@
 
 #if USE_COCOS2DX
 // ============================================================================
-// Cocos2d-x Radar PPI Display — Phase 2 Full Implementation
+// Cocos2d-x Radar PPI Display — RadarBlip entity-based rendering
 // ============================================================================
 
-static constexpr int   TRAIL_MAX_POINTS = 8;
-static constexpr float TRAIL_RECORD_INTERVAL = 1.5f;  // seconds between trail dots
-static constexpr float TRAIL_MAX_AGE = 15.0f;         // seconds before trail fades out
-static constexpr float NOISE_REFRESH_INTERVAL = 10.0f; // refresh noise once per sweep
-static constexpr float SELECTION_PULSE_SPEED = 3.0f;   // Hz for pulsing bracket
-static constexpr float SWEEP_TRAIL_DEGREES = 30.0f;    // trailing glow arc
-static constexpr int   SWEEP_TRAIL_SEGMENTS = 20;      // segments in the trail arc
+static constexpr float SWEEP_TRAIL_DEGREES = 30.0f;
+static constexpr int   SWEEP_TRAIL_SEGMENTS = 20;
+// Sweep beam width: contacts within this many degrees of the beam are "painted"
+static constexpr float SWEEP_BEAM_WIDTH = 3.0f;
 
 RadarDisplay* RadarDisplay::create(float radius)
 {
@@ -33,22 +30,19 @@ bool RadarDisplay::init(float radius)
 
     radius_ = radius;
     sweepAngle_ = 0.0f;
+    prevSweepAngle_ = 0.0f;
     selectedTrackId_ = -1;
-    selectionPulseTimer_ = 0.0f;
     trackManager_ = nullptr;
     fireControl_ = nullptr;
-    showTrackLabels_ = true;
-    showTrackTrails_ = true;
     showNoise_ = true;
     noiseRefreshTimer_ = 0.0f;
-    lastNoiseSweepAngle_ = 0.0f;
 
-    // Create draw nodes for layered rendering (order matters)
+    // Drawing layers (order matters for z-depth)
     backgroundNode_ = cocos2d::DrawNode::create();
     noiseNode_      = cocos2d::DrawNode::create();
     sweepNode_      = cocos2d::DrawNode::create();
     trailNode_      = cocos2d::DrawNode::create();
-    blipNode_       = cocos2d::DrawNode::create();
+    blipContainer_  = cocos2d::Node::create();
     overlayNode_    = cocos2d::DrawNode::create();
     labelNode_      = cocos2d::Node::create();
 
@@ -56,7 +50,7 @@ bool RadarDisplay::init(float radius)
     addChild(noiseNode_,      1);
     addChild(sweepNode_,      2);
     addChild(trailNode_,      3);
-    addChild(blipNode_,       4);
+    addChild(blipContainer_,  4);   // RadarBlip entities live here
     addChild(overlayNode_,    5);
     addChild(labelNode_,      6);
 
@@ -73,17 +67,17 @@ bool RadarDisplay::init(float radius)
 void RadarDisplay::update(float dt)
 {
     // Advance sweep beam
-    float prevAngle = sweepAngle_;
+    prevSweepAngle_ = sweepAngle_;
     sweepAngle_ += GameConstants::RADAR_SWEEP_RATE_DPS * dt;
     if (sweepAngle_ >= 360.0f) sweepAngle_ -= 360.0f;
 
-    // Pulse timer for selection highlight
-    selectionPulseTimer_ += dt;
+    // Sync blip entities with track manager (add/remove as needed)
+    syncBlips(dt);
 
-    // Update per-blip state (brightness, trail recording)
-    updateBlipStates(dt);
+    // Check which blips the sweep just passed over — trigger phosphor flare
+    checkSweepContacts();
 
-    // Refresh noise once per full sweep
+    // Refresh noise once per full sweep revolution
     noiseRefreshTimer_ += dt;
     float sweepPeriod = 60.0f / GameConstants::RADAR_SWEEP_RATE_RPM;
     if (noiseRefreshTimer_ >= sweepPeriod) {
@@ -97,22 +91,15 @@ void RadarDisplay::update(float dt)
     // Clear dynamic layers
     sweepNode_->clear();
     trailNode_->clear();
-    blipNode_->clear();
     overlayNode_->clear();
     labelNode_->removeAllChildren();
 
     // Draw dynamic elements
     drawSweepBeam();
-    if (showTrackTrails_) drawTrackTrails();
-    drawBlips();
-    if (showTrackLabels_) drawTrackLabels();
+    drawTrailDots();
     drawBatteryPositions();
     drawTerritoryZone();
     drawMissileTrails();
-
-    if (selectedTrackId_ >= 0) {
-        drawSelectedTrackHighlight();
-    }
 }
 
 // ============================================================================
@@ -282,24 +269,18 @@ void RadarDisplay::drawRadarNoise()
     std::uniform_real_distribution<float> alphaDist(0.03f, 0.12f);
     std::uniform_real_distribution<float> sizeDist(0.5f, 1.5f);
 
-    // Scatter noise dots across the scope
     int noiseCount = 120;
-
     for (int i = 0; i < noiseCount; i++) {
         float angle = angleDist(rng);
         float rangeFrac = rangeDist(rng);
-
-        // More noise near center (ground clutter)
-        rangeFrac = rangeFrac * rangeFrac;
+        rangeFrac = rangeFrac * rangeFrac;  // more noise near center
 
         float r = rangeFrac * radius_;
         float rad = angle * M_PI / 180.0f;
         cocos2d::Vec2 pos(r * std::sin(rad), r * std::cos(rad));
 
         float alpha = alphaDist(rng);
-        // Ground clutter is denser/brighter near center
         if (rangeFrac < 0.15f) alpha *= 2.0f;
-
         float size = sizeDist(rng);
 
         noiseNode_->drawSolidCircle(pos, size, 0, 4,
@@ -308,260 +289,134 @@ void RadarDisplay::drawRadarNoise()
 }
 
 // ============================================================================
-// Blip state management
+// RadarBlip entity management
 // ============================================================================
 
-void RadarDisplay::updateBlipStates(float dt)
+void RadarDisplay::setSelectedTrack(int trackId)
+{
+    // Deselect old
+    if (selectedTrackId_ >= 0) {
+        auto it = blips_.find(selectedTrackId_);
+        if (it != blips_.end()) it->second->setSelected(false);
+    }
+    selectedTrackId_ = trackId;
+    // Select new
+    if (trackId >= 0) {
+        auto it = blips_.find(trackId);
+        if (it != blips_.end()) it->second->setSelected(true);
+    }
+}
+
+void RadarDisplay::syncBlips(float dt)
 {
     if (!trackManager_) return;
 
     auto tracks = trackManager_->getAllTracks();
 
-    // Remove stale blip states for tracks that no longer exist
-    blipStates_.erase(
-        std::remove_if(blipStates_.begin(), blipStates_.end(),
-            [&tracks](const BlipState& bs) {
-                return std::none_of(tracks.begin(), tracks.end(),
-                    [&bs](const TrackData& td) { return td.trackId == bs.trackId; });
-            }),
-        blipStates_.end());
-
-    // Update or create blip states for each track
+    // Build set of active track IDs
+    std::vector<int> activeIds;
     for (const auto& track : tracks) {
         if (!track.isAlive) continue;
+        activeIds.push_back(track.trackId);
 
-        BlipState* state = getBlipState(track.trackId);
-        if (!state) {
-            blipStates_.push_back({track.trackId, 0.0f, {}});
-            state = &blipStates_.back();
+        auto it = blips_.find(track.trackId);
+        if (it == blips_.end()) {
+            // New contact — create a RadarBlip entity
+            auto* blip = RadarBlip::create();
+            blip->setTrackData(track);
+            blipContainer_->addChild(blip);
+            blips_[track.trackId] = blip;
+        } else {
+            // Existing blip — update its track data
+            it->second->setTrackData(track);
         }
 
-        // Update brightness based on sweep position
-        state->brightness = calculatePhosphorBrightness(track.azimuth);
+        // Update blip position and state
+        auto* blip = blips_[track.trackId];
+        blip->setScreenPosition(polarToScreen(track.range, track.azimuth));
+        blip->updateBlip(dt, sweepAngle_);
 
-        // Record trail point periodically
-        if (state->trail.empty() ||
-            state->trail.back().age >= TRAIL_RECORD_INTERVAL) {
-            recordTrailPoint(*state, track.azimuth, track.range);
+        // Enable track overlay once IFF has interrogated (not PENDING)
+        bool iffDone = (track.classification != TrackClassification::PENDING);
+        blip->setTrackOverlayEnabled(iffDone);
+
+        // Selection state
+        blip->setSelected(track.trackId == selectedTrackId_);
+    }
+
+    // Remove blips for tracks that no longer exist
+    std::vector<int> toRemove;
+    for (auto& pair : blips_) {
+        bool found = false;
+        for (int id : activeIds) {
+            if (id == pair.first) { found = true; break; }
         }
-
-        // Age trail points and remove old ones
-        for (auto& pt : state->trail) {
-            pt.age += dt;
-        }
-        state->trail.erase(
-            std::remove_if(state->trail.begin(), state->trail.end(),
-                [](const BlipTrailPoint& p) { return p.age > TRAIL_MAX_AGE; }),
-            state->trail.end());
+        if (!found) toRemove.push_back(pair.first);
+    }
+    for (int id : toRemove) {
+        blipContainer_->removeChild(blips_[id]);
+        blips_.erase(id);
     }
 }
 
-BlipState* RadarDisplay::getBlipState(int trackId)
+void RadarDisplay::checkSweepContacts()
 {
-    for (auto& bs : blipStates_) {
-        if (bs.trackId == trackId) return &bs;
-    }
-    return nullptr;
-}
-
-void RadarDisplay::recordTrailPoint(BlipState& state, float azimuth, float range)
-{
-    state.trail.push_back({azimuth, range, 0.0f});
-    if ((int)state.trail.size() > TRAIL_MAX_POINTS) {
-        state.trail.erase(state.trail.begin());
-    }
-}
-
-float RadarDisplay::calculatePhosphorBrightness(float blipAzimuth) const
-{
-    // How many degrees ago did the sweep pass over this azimuth?
-    float angleDiff = sweepAngle_ - blipAzimuth;
-    if (angleDiff < 0) angleDiff += 360.0f;
-
-    // 0 = sweep just passed (brightest), 360 = full revolution ago (dimmest)
-    float fadeRatio = angleDiff / 360.0f;
-
-    // Non-linear fade: bright for a while, then drops off
-    // Simulates phosphor persistence
-    float brightness = 1.0f - std::pow(fadeRatio, 0.6f);
-    return std::max(0.08f, brightness);
-}
-
-float RadarDisplay::getBlipSize(AircraftType type) const
-{
-    switch (type) {
-        case AircraftType::STRATEGIC_BOMBER:  return 5.0f;
-        case AircraftType::CIVILIAN_AIRLINER: return 5.0f;
-        case AircraftType::TACTICAL_BOMBER:   return 4.0f;
-        case AircraftType::FRIENDLY_MILITARY: return 3.5f;
-        case AircraftType::FIGHTER_ATTACK:    return 3.0f;
-        case AircraftType::ATTACK_DRONE:      return 2.5f;
-        case AircraftType::RECON_DRONE:       return 2.0f;
-        case AircraftType::STEALTH_FIGHTER:   return 2.0f;
-    }
-    return 3.0f;
-}
-
-cocos2d::Color4F RadarDisplay::getBlipColor(TrackClassification cls,
-                                             float brightness) const
-{
-    switch (cls) {
-        case TrackClassification::HOSTILE:
-            return cocos2d::Color4F(1.0f, 0.15f, 0.1f, brightness);
-        case TrackClassification::FRIENDLY:
-            return cocos2d::Color4F(0.2f, 0.5f, 1.0f, brightness);
-        case TrackClassification::UNKNOWN:
-            return cocos2d::Color4F(1.0f, 0.9f, 0.1f, brightness);
-        case TrackClassification::PENDING:
-            return cocos2d::Color4F(0.5f, 0.5f, 0.5f, brightness * 0.7f);
-    }
-    return cocos2d::Color4F(0.0f, 1.0f, 0.0f, brightness);
-}
-
-// ============================================================================
-// Draw blips
-// ============================================================================
-
-void RadarDisplay::drawBlips()
-{
-    if (!trackManager_) return;
-
-    auto tracks = trackManager_->getAllTracks();
-    for (const auto& track : tracks) {
-        if (!track.isAlive) continue;
-
-        cocos2d::Vec2 pos = polarToScreen(track.range, track.azimuth);
-
-        // Get brightness from blip state
-        BlipState* state = getBlipState(track.trackId);
-        float brightness = state ? state->brightness : 0.5f;
-
-        float blipSize = getBlipSize(track.aircraftType);
-        cocos2d::Color4F color = getBlipColor(track.classification, brightness);
-
-        // Main blip dot
-        blipNode_->drawSolidCircle(pos, blipSize, 0, 8, color);
-
-        // Slight glow around bright blips
-        if (brightness > 0.6f) {
-            float glowAlpha = (brightness - 0.6f) * 0.3f;
-            blipNode_->drawSolidCircle(pos, blipSize + 2.0f, 0, 8,
-                cocos2d::Color4F(color.r, color.g, color.b, glowAlpha));
+    for (auto& pair : blips_) {
+        float blipAz = pair.second->getTrackData().azimuth;
+        if (sweepPassedOver(blipAz)) {
+            pair.second->onSweepContact();
         }
     }
 }
 
-// ============================================================================
-// Track history trails
-// ============================================================================
-
-void RadarDisplay::drawTrackTrails()
+bool RadarDisplay::sweepPassedOver(float azimuthDeg) const
 {
-    for (const auto& state : blipStates_) {
-        if (state.trail.size() < 2) continue;
+    // Did the sweep beam pass over this azimuth between prevSweepAngle_ and sweepAngle_?
+    float prev = prevSweepAngle_;
+    float curr = sweepAngle_;
 
-        for (size_t i = 0; i < state.trail.size(); i++) {
-            const auto& pt = state.trail[i];
-            cocos2d::Vec2 pos = polarToScreen(pt.range, pt.azimuth);
+    // Normalize azimuth
+    float az = azimuthDeg;
+    if (az < 0) az += 360.0f;
+    if (az >= 360.0f) az -= 360.0f;
 
-            float ageFade = 1.0f - (pt.age / TRAIL_MAX_AGE);
-            float dotAlpha = ageFade * 0.4f;
-            float dotSize = 1.5f * ageFade;
+    // Handle the beam width — check if azimuth is within SWEEP_BEAM_WIDTH of the sweep
+    // Also handle the wrap-around at 0/360
+    if (curr >= prev) {
+        // Normal case: no wrap
+        float lo = prev - SWEEP_BEAM_WIDTH;
+        float hi = curr + SWEEP_BEAM_WIDTH;
+        if (lo < 0) {
+            return (az >= lo + 360.0f || az <= hi);
+        }
+        return (az >= lo && az <= hi);
+    } else {
+        // Wrapped past 360
+        float lo = prev - SWEEP_BEAM_WIDTH;
+        float hi = curr + SWEEP_BEAM_WIDTH;
+        return (az >= lo || az <= hi);
+    }
+}
 
-            if (dotAlpha > 0.02f) {
-                trailNode_->drawSolidCircle(pos, dotSize, 0, 4,
-                    cocos2d::Color4F(0.0f, 0.6f, 0.0f, dotAlpha));
+// ============================================================================
+// Draw phosphor trail dots from blip history
+// ============================================================================
+
+void RadarDisplay::drawTrailDots()
+{
+    for (const auto& pair : blips_) {
+        const auto& trail = pair.second->getTrail();
+        for (const auto& dot : trail) {
+            cocos2d::Vec2 pos = polarToScreen(dot.range, dot.azimuth);
+            float alpha = dot.intensity * 0.35f;
+            float size = 1.2f + dot.intensity;
+
+            if (alpha > 0.02f) {
+                trailNode_->drawSolidCircle(pos, size, 0, 4,
+                    cocos2d::Color4F(0.0f, 0.5f, 0.0f, alpha));
             }
         }
     }
-}
-
-// ============================================================================
-// Track ID labels
-// ============================================================================
-
-void RadarDisplay::drawTrackLabels()
-{
-    if (!trackManager_) return;
-
-    auto tracks = trackManager_->getAllTracks();
-    for (const auto& track : tracks) {
-        if (!track.isAlive) continue;
-
-        BlipState* state = getBlipState(track.trackId);
-        float brightness = state ? state->brightness : 0.5f;
-
-        // Only show label when blip is reasonably visible
-        if (brightness < 0.15f) continue;
-
-        cocos2d::Vec2 pos = polarToScreen(track.range, track.azimuth);
-        cocos2d::Color4F color = getBlipColor(track.classification, brightness);
-
-        auto* label = cocos2d::Label::createWithSystemFont(
-            track.getTrackIdString(), "Courier", 8);
-        label->setPosition(pos + cocos2d::Vec2(8, 6));
-        label->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
-        label->setTextColor(cocos2d::Color4B(
-            (uint8_t)(color.r * 255),
-            (uint8_t)(color.g * 255),
-            (uint8_t)(color.b * 255),
-            (uint8_t)(std::min(brightness + 0.2f, 1.0f) * 200)));
-        labelNode_->addChild(label);
-    }
-}
-
-// ============================================================================
-// Selected track highlight (animated pulsing bracket)
-// ============================================================================
-
-void RadarDisplay::drawSelectedTrackHighlight()
-{
-    if (!trackManager_ || selectedTrackId_ < 0) return;
-
-    TrackData* track = trackManager_->getTrack(selectedTrackId_);
-    if (!track || !track->isAlive) {
-        selectedTrackId_ = -1;
-        return;
-    }
-
-    cocos2d::Vec2 pos = polarToScreen(track->range, track->azimuth);
-
-    // Pulsing ring
-    float pulse = 0.6f + 0.4f * std::sin(selectionPulseTimer_ * SELECTION_PULSE_SPEED * 2.0f * M_PI);
-    float ringRadius = getBlipSize(track->aircraftType) + 5.0f + pulse * 2.0f;
-
-    // Selection ring
-    overlayNode_->drawCircle(pos, ringRadius, 0, 16, false,
-        cocos2d::Color4F(1.0f, 1.0f, 1.0f, 0.6f * pulse));
-
-    // Corner brackets (tactical display style)
-    float bLen = ringRadius * 0.6f;
-    float bOff = ringRadius + 2.0f;
-    cocos2d::Color4F bracketColor(1.0f, 1.0f, 1.0f, 0.7f * pulse);
-
-    // Top-left bracket
-    overlayNode_->drawLine(pos + cocos2d::Vec2(-bOff, bOff),
-                            pos + cocos2d::Vec2(-bOff, bOff - bLen), bracketColor);
-    overlayNode_->drawLine(pos + cocos2d::Vec2(-bOff, bOff),
-                            pos + cocos2d::Vec2(-bOff + bLen, bOff), bracketColor);
-
-    // Top-right bracket
-    overlayNode_->drawLine(pos + cocos2d::Vec2(bOff, bOff),
-                            pos + cocos2d::Vec2(bOff, bOff - bLen), bracketColor);
-    overlayNode_->drawLine(pos + cocos2d::Vec2(bOff, bOff),
-                            pos + cocos2d::Vec2(bOff - bLen, bOff), bracketColor);
-
-    // Bottom-left bracket
-    overlayNode_->drawLine(pos + cocos2d::Vec2(-bOff, -bOff),
-                            pos + cocos2d::Vec2(-bOff, -bOff + bLen), bracketColor);
-    overlayNode_->drawLine(pos + cocos2d::Vec2(-bOff, -bOff),
-                            pos + cocos2d::Vec2(-bOff + bLen, -bOff), bracketColor);
-
-    // Bottom-right bracket
-    overlayNode_->drawLine(pos + cocos2d::Vec2(bOff, -bOff),
-                            pos + cocos2d::Vec2(bOff, -bOff + bLen), bracketColor);
-    overlayNode_->drawLine(pos + cocos2d::Vec2(bOff, -bOff),
-                            pos + cocos2d::Vec2(bOff - bLen, -bOff), bracketColor);
 }
 
 // ============================================================================
