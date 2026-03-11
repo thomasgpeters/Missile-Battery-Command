@@ -130,7 +130,7 @@ void RadarDisplay::drawBackground()
 
     // Outer rim (bright green border)
     backgroundNode_->drawCircle(
-        cocos2d::Vec2::ZERO, radius_, 0, 72, false, 1.5f,
+        cocos2d::Vec2::ZERO, radius_, 0, 72, false,
         cocos2d::Color4F(0.0f, 0.7f, 0.0f, 0.9f));
 
     drawRangeRings();

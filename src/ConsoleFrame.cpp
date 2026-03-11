@@ -206,22 +206,22 @@ void ConsoleFrame::drawScopeBezel()
 
     // Outer rubber hood ring
     housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 9.0f, 0, 72, false, 18.0f,
+        cocos2d::Vec2::ZERO, r + 9.0f, 0, 72, false,
         cocos2d::Color4F(0.08f, 0.08f, 0.08f, 1.0f));
 
     // Inner hood bevel
     housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 3.0f, 0, 72, false, 6.0f,
+        cocos2d::Vec2::ZERO, r + 3.0f, 0, 72, false,
         cocos2d::Color4F(0.12f, 0.12f, 0.12f, 1.0f));
 
     // Outer metal bezel
     housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 18.0f, 0, 72, false, 2.0f,
+        cocos2d::Vec2::ZERO, r + 18.0f, 0, 72, false,
         cocos2d::Color4F(0.31f, 0.33f, 0.28f, 1.0f));
 
     // Inner bezel edge
     housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 1.0f, 0, 72, false, 1.5f,
+        cocos2d::Vec2::ZERO, r + 1.0f, 0, 72, false,
         cocos2d::Color4F(0.20f, 0.22f, 0.18f, 1.0f));
 
     // Mounting screws at 45-degree positions
