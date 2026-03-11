@@ -33,14 +33,13 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     message(STATUS "Found cocos2d-x at: ${COCOS2DX_ROOT}")
     set(BUILD_ENGINE_DONE ON)
 
-    # Set internal variables that cocos2d-x expects. Normally these are set
-    # by cocos2d-x's own root CMakeLists.txt, but since we include the
-    # cocos/ subdirectory directly we must define them ourselves.
+    # Set internal variables that cocos2d-x's sub-CMakeLists expect.
     set(COCOS2DX_ROOT_PATH "${COCOS2DX_ROOT}")
     set(EXTERNAL_DIR "${COCOS2DX_ROOT}/external")
 
-    # Include cocos2d-x build
-    add_subdirectory(${COCOS2DX_ROOT}/cocos ${ENGINE_BINARY_PATH}/cocos/core)
+    # Include cocos2d-x from its root so all internal variables and macros
+    # (use_cocos2dx_compile_define, etc.) are properly initialized.
+    add_subdirectory(${COCOS2DX_ROOT} ${ENGINE_BINARY_PATH}/cocos2d-x)
     set(COCOS2D_FOUND TRUE)
 else()
     message(WARNING
