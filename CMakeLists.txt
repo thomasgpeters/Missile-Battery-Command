@@ -55,6 +55,8 @@ set(GAME_SOURCES
     src/AppDelegate.cpp
     src/RadarScene.cpp
     src/RadarDisplay.cpp
+    src/ConsoleFrame.cpp
+    src/IntegratedConsoleScene.cpp
     src/Aircraft.cpp
     src/AircraftGenerator.cpp
     src/IFFSystem.cpp
@@ -73,6 +75,8 @@ set(GAME_HEADERS
     include/AppDelegate.h
     include/RadarScene.h
     include/RadarDisplay.h
+    include/ConsoleFrame.h
+    include/IntegratedConsoleScene.h
     include/Aircraft.h
     include/AircraftGenerator.h
     include/IFFSystem.h
@@ -126,6 +130,8 @@ set(GAME_LIB_SOURCES
     src/AppDelegate.cpp
     src/RadarScene.cpp
     src/RadarDisplay.cpp
+    src/ConsoleFrame.cpp
+    src/IntegratedConsoleScene.cpp
     src/Aircraft.cpp
     src/AircraftGenerator.cpp
     src/IFFSystem.cpp

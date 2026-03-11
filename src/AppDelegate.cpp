@@ -1,4 +1,5 @@
 #include "AppDelegate.h"
+#include "IntegratedConsoleScene.h"
 #include "RadarScene.h"
 #include <iostream>
 
@@ -31,7 +32,8 @@ bool AppDelegate::applicationDidFinishLaunching()
     director->setDisplayStats(true);
     director->setAnimationInterval(1.0f / 60);
 
-    auto scene = RadarScene::createScene();
+    // Use the integrated single-console scene
+    auto scene = IntegratedConsoleScene::createScene();
     director->runWithScene(scene);
 
     return true;
@@ -79,9 +81,9 @@ int AppDelegate::run()
 
     std::cout << "[AppDelegate] Initializing game systems..." << std::endl;
 
-    auto scene = RadarScene::create();
+    auto scene = IntegratedConsoleScene::create();
     if (scene && scene->init()) {
-        std::cout << "[AppDelegate] RadarScene initialized successfully." << std::endl;
+        std::cout << "[AppDelegate] IntegratedConsoleScene initialized." << std::endl;
         scene->runGameLoop();
     }
 
