@@ -64,14 +64,14 @@ void IntegratedConsoleScene::initConsole()
     auto center = cocos2d::Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.5f);
 
     // AN/TSQ-73 console: central portrait display + flanking control panels.
-    // bezelW = (2r + 50) + 2*(8 + 100) + 20 = 2r + 286
-    // bezelH = ((2r + 50) * 1.35 + 40) + 80
+    // bezelW = (2r + 50) + 2*(12 + 130) + 40 = 2r + 374
+    // bezelH = ((2r + 50) * 1.35 + 40) + 90
     // Solve for r given max screen dimensions:
     float maxBezelW = visibleSize.width * 0.88f;
     float maxBezelH = visibleSize.height * 0.90f;
-    float rFromW = (maxBezelW - 286.0f) * 0.5f;
-    // From bezelH: maxH = (2r+50)*1.35 + 120 => r = ((maxH-120)/1.35 - 50)/2
-    float rFromH = ((maxBezelH - 120.0f) / 1.35f - 50.0f) * 0.5f;
+    float rFromW = (maxBezelW - 374.0f) * 0.5f;
+    // From bezelH: maxH = (2r+50)*1.35 + 130 => r = ((maxH-130)/1.35 - 50)/2
+    float rFromH = ((maxBezelH - 130.0f) / 1.35f - 50.0f) * 0.5f;
     float radarRadius = std::max(80.0f, std::min(rFromH, rFromW));
 
     // Console frame — AN/TSQ-73 analog console housing
@@ -84,13 +84,92 @@ void IntegratedConsoleScene::initConsole()
     consoleFrame_->setLevel(gameConfig_.getLevel());
     addChild(consoleFrame_, 0);
 
-    // Radar display — PPI scope, centered in the portrait display
+    // Radar display — PPI scope, clipped to the portrait CRT glass opening
     float scopeCenterY = consoleFrame_->getScopeCenterY();
     radarDisplay_ = RadarDisplay::create(radarRadius);
-    radarDisplay_->setPosition(center + cocos2d::Vec2(0, scopeCenterY));
     radarDisplay_->setTrackManager(&trackManager_);
     radarDisplay_->setFireControlSystem(&fireControlSystem_);
-    addChild(radarDisplay_, 1);
+
+    // Build a stencil matching the CRT glass rounded-rectangle viewport
+    float clipW = consoleFrame_->getDisplayWidth();
+    float clipH = consoleFrame_->getDisplayHeight();
+    float clipR = consoleFrame_->getDisplayCornerRadius();
+
+    auto* stencil = cocos2d::DrawNode::create();
+    {
+        // Build rounded-rectangle polygon for the stencil mask
+        float hw = clipW * 0.5f;
+        float hh = clipH * 0.5f;
+        float r = std::min(clipR, std::min(hw, hh));
+        const int arcSteps = 8;
+        std::vector<cocos2d::Vec2> verts;
+
+        // Bottom-left corner
+        for (int i = 0; i <= arcSteps; i++) {
+            float angle = M_PI + (M_PI * 0.5f) * ((float)i / arcSteps);
+            verts.push_back(cocos2d::Vec2(-hw + r + r * cosf(angle),
+                                           -hh + r + r * sinf(angle)));
+        }
+        // Bottom-right corner
+        for (int i = 0; i <= arcSteps; i++) {
+            float angle = M_PI * 1.5f + (M_PI * 0.5f) * ((float)i / arcSteps);
+            verts.push_back(cocos2d::Vec2(hw - r + r * cosf(angle),
+                                           -hh + r + r * sinf(angle)));
+        }
+        // Top-right corner
+        for (int i = 0; i <= arcSteps; i++) {
+            float angle = 0.0f + (M_PI * 0.5f) * ((float)i / arcSteps);
+            verts.push_back(cocos2d::Vec2(hw - r + r * cosf(angle),
+                                           hh - r + r * sinf(angle)));
+        }
+        // Top-left corner
+        for (int i = 0; i <= arcSteps; i++) {
+            float angle = M_PI * 0.5f + (M_PI * 0.5f) * ((float)i / arcSteps);
+            verts.push_back(cocos2d::Vec2(-hw + r + r * cosf(angle),
+                                           hh - r + r * sinf(angle)));
+        }
+
+        stencil->drawSolidPoly(verts.data(), (int)verts.size(),
+                                cocos2d::Color4F::WHITE);
+    }
+
+    auto* clipNode = cocos2d::ClippingNode::create(stencil);
+    clipNode->setAlphaThreshold(0.5f);
+    clipNode->setPosition(center + cocos2d::Vec2(0, scopeCenterY));
+    clipNode->addChild(radarDisplay_);
+    addChild(clipNode, 1);
+
+    // CRT glass reflection — very subtle shine from the overhead shelter lights
+    // Drawn on top of the clipped radar, below the console frame overlay
+    auto* glassReflection = cocos2d::DrawNode::create();
+    {
+        float hw = clipW * 0.5f;
+        float hh = clipH * 0.5f;
+
+        // Broad diffuse highlight across upper portion of glass (3% opacity)
+        glassReflection->drawSolidRect(
+            cocos2d::Vec2(-hw, hh * 0.15f),
+            cocos2d::Vec2(hw, hh),
+            cocos2d::Color4F(0.7f, 0.75f, 0.65f, 0.03f));
+
+        // Slightly brighter strip near top edge (overhead light reflection)
+        glassReflection->drawSolidRect(
+            cocos2d::Vec2(-hw * 0.7f, hh * 0.70f),
+            cocos2d::Vec2(hw * 0.7f, hh * 0.85f),
+            cocos2d::Color4F(0.8f, 0.85f, 0.75f, 0.04f));
+
+        // Diagonal glare streak (top-left to center-right)
+        std::vector<cocos2d::Vec2> glare = {
+            { -hw * 0.6f, hh * 0.85f },
+            { -hw * 0.3f, hh * 0.90f },
+            {  hw * 0.4f, hh * 0.30f },
+            {  hw * 0.1f, hh * 0.25f }
+        };
+        glassReflection->drawSolidPoly(glare.data(), (int)glare.size(),
+            cocos2d::Color4F(0.9f, 0.95f, 0.85f, 0.025f));
+    }
+    glassReflection->setPosition(center + cocos2d::Vec2(0, scopeCenterY));
+    addChild(glassReflection, 2);
 }
 
 void IntegratedConsoleScene::initInputHandlers()

@@ -49,6 +49,11 @@ public:
     float getBezelWidth() const { return bezelW_; }
     float getBezelHeight() const { return bezelH_; }
 
+    // Portrait display dimensions (for clipping mask)
+    float getDisplayWidth() const { return displayW_; }
+    float getDisplayHeight() const { return displayH_; }
+    float getDisplayCornerRadius() const { return displayCornerR_; }
+
     // Portrait display center offset (scope is centered in display)
     float getScopeCenterY() const { return displayCenterY_; }
 
