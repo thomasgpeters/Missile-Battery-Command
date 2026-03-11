@@ -63,15 +63,16 @@ void IntegratedConsoleScene::initConsole()
     auto visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
     auto center = cocos2d::Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.5f);
 
-    // AN/TSQ-73 console: central portrait display + flanking control panels.
-    // bezelW = (2r + 50) + 2*(12 + 130) + 40 = 2r + 374
-    // bezelH = ((2r + 50) * 1.35 + 40) + 90
+    // AN/TSQ-73 console: landscape (wider than tall).
+    // bezelW = (2r + 50) + 2*(14 + 160) + 60 = 2r + 458
+    // bezelH = ((2r + 50) * 1.25 + 30) + 90 = 2.5r + 182.5
+    // Writing bench adds ~54px below console.
     // Solve for r given max screen dimensions:
-    float maxBezelW = visibleSize.width * 0.88f;
-    float maxBezelH = visibleSize.height * 0.90f;
-    float rFromW = (maxBezelW - 374.0f) * 0.5f;
-    // From bezelH: maxH = (2r+50)*1.35 + 130 => r = ((maxH-130)/1.35 - 50)/2
-    float rFromH = ((maxBezelH - 130.0f) / 1.35f - 50.0f) * 0.5f;
+    float maxBezelW = visibleSize.width * 0.92f;   // wider screen usage
+    float maxBezelH = visibleSize.height * 0.82f;  // leave room for bench + bottom bar
+    float rFromW = (maxBezelW - 458.0f) * 0.5f;
+    // From bezelH: maxH = (2r+50)*1.25 + 120 => r = ((maxH-120)/1.25 - 50)/2
+    float rFromH = ((maxBezelH - 120.0f) / 1.25f - 50.0f) * 0.5f;
     float radarRadius = std::max(80.0f, std::min(rFromH, rFromW));
 
     // Console frame — AN/TSQ-73 analog console housing
