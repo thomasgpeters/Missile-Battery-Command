@@ -104,6 +104,7 @@ private:
     void drawLeftPanel();
     void drawRightPanel();
     void drawBottomControls();
+    void drawWritingBench();     // Flat shelf/desk in front of the console
     void drawTopIndicatorRow();
     void drawManufacturerPlate();
 

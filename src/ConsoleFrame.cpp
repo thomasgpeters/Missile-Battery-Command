@@ -33,26 +33,26 @@ bool ConsoleFrame::init(float scopeRadius)
     level_ = 1;
     selectedTrackId_ = -1;
 
-    // === AN/TSQ-73 layout: central portrait display + flanking control panels ===
+    // === AN/TSQ-73 layout: landscape console, wider than tall ===
     //
-    // The real console has a portrait-format CRT display in the center with
-    // rounded corners, flanked by tall narrow control panels on each side.
-    // The PPI radar scope is rendered inside the portrait display.
+    // The real console is landscape-format: a portrait CRT display centered
+    // inside a wide console housing with generous control panels on each side,
+    // a writing shelf below, and status indicators along the top.
 
-    // Portrait display: sized to frame the circular scope with margin
+    // Portrait CRT display: sized to frame the circular scope with margin
     float scopeDia = scopeRadius * 2.0f;
     displayW_ = scopeDia + 50.0f;              // scope + small side margins
-    displayH_ = displayW_ * 1.35f;             // portrait: 35% taller than wide
+    displayH_ = displayW_ * 1.25f;             // portrait: 25% taller than wide
     displayCornerR_ = 55.0f;                    // large ~5-inch rounded corners on CRT
-    displayCenterY_ = 0.0f;                     // scope centered in display
+    displayCenterY_ = 15.0f;                    // scope slightly above center (room for shelf)
 
-    // Side panels: wider for authentic control panel spacing
-    panelW_ = 130.0f;
-    panelH_ = displayH_ + 40.0f;               // slightly taller than display
-    panelGap_ = 12.0f;                          // gap between panel and display
+    // Side panels: wide for authentic control panel spacing
+    panelW_ = 160.0f;
+    panelH_ = displayH_ + 30.0f;               // slightly taller than display
+    panelGap_ = 14.0f;                          // gap between panel and display
 
-    // Overall console extents (wider for bezel room and control panels)
-    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 40.0f;
+    // Overall console extents — landscape: wider than tall
+    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 60.0f;
     bezelH_ = panelH_ + 90.0f;                 // panels + top indicators + bottom bar
 
     // Create draw layers
@@ -79,6 +79,7 @@ bool ConsoleFrame::init(float scopeRadius)
     drawLeftPanel();
     drawRightPanel();
     drawBottomControls();
+    drawWritingBench();
     drawTopIndicatorRow();
     drawManufacturerPlate();
 
@@ -270,39 +271,124 @@ void ConsoleFrame::drawLabeledButton(cocos2d::DrawNode* node,
 }
 
 // ============================================================================
-// S-280 shelter background
+// Shelter background — steel equipment cabinets behind the console
+// The AN/TSQ-73 sits inside an S-529/S-280 shelter filled with
+// 19" relay racks, power distribution, comm equipment behind the operator.
 // ============================================================================
 
 void ConsoleFrame::drawShelterBackground()
 {
-    housingNode_->drawSolidRect(
-        cocos2d::Vec2(-800, -600),
-        cocos2d::Vec2(800, 600),
-        cocos2d::Color4F(0.06f, 0.07f, 0.05f, 1.0f));
+    float sceneW = 900.0f;
+    float sceneH = 600.0f;
 
-    // Ceiling
+    // Overall dark interior
     housingNode_->drawSolidRect(
-        cocos2d::Vec2(-800, 400),
-        cocos2d::Vec2(800, 600),
-        cocos2d::Color4F(0.08f, 0.09f, 0.07f, 1.0f));
+        cocos2d::Vec2(-sceneW, -sceneH),
+        cocos2d::Vec2(sceneW, sceneH),
+        cocos2d::Color4F(0.04f, 0.05f, 0.04f, 1.0f));
 
-    // Red night ops light strips
-    for (int lx = -400; lx <= 400; lx += 200) {
+    // === Steel equipment cabinet wall (behind console) ===
+    // Full-width row of 19" relay rack cabinets
+    float cabTop = sceneH * 0.85f;
+    float cabBot = -sceneH * 0.55f;
+    float cabW = 85.0f;     // each cabinet panel width
+    float cabGap = 3.0f;    // gap between cabinets
+
+    int numCabs = (int)(2.0f * sceneW / (cabW + cabGap)) + 2;
+    float startX = -sceneW;
+
+    cocos2d::Color4F cabDark(0.07f, 0.08f, 0.07f, 1.0f);
+    cocos2d::Color4F cabMid(0.10f, 0.11f, 0.10f, 1.0f);
+    cocos2d::Color4F cabEdge(0.14f, 0.15f, 0.13f, 1.0f);
+    cocos2d::Color4F cabBorder(0.06f, 0.06f, 0.05f, 1.0f);
+
+    for (int i = 0; i < numCabs; i++) {
+        float cx = startX + i * (cabW + cabGap);
+
+        // Cabinet face — dark steel
         housingNode_->drawSolidRect(
-            cocos2d::Vec2((float)lx - 20.0f, 520.0f),
-            cocos2d::Vec2((float)lx + 20.0f, 524.0f),
-            cocos2d::Color4F(0.25f, 0.06f, 0.06f, 0.5f));
-        housingNode_->drawSolidRect(
-            cocos2d::Vec2((float)lx - 35.0f, 500.0f),
-            cocos2d::Vec2((float)lx + 35.0f, 520.0f),
-            cocos2d::Color4F(0.15f, 0.04f, 0.04f, 0.2f));
+            cocos2d::Vec2(cx, cabBot),
+            cocos2d::Vec2(cx + cabW, cabTop),
+            (i % 3 == 0) ? cabDark : cabMid);
+
+        // Cabinet border lines (recessed seams between panels)
+        housingNode_->drawLine(
+            cocos2d::Vec2(cx, cabBot), cocos2d::Vec2(cx, cabTop), cabBorder);
+        housingNode_->drawLine(
+            cocos2d::Vec2(cx + cabW, cabBot), cocos2d::Vec2(cx + cabW, cabTop), cabBorder);
+
+        // Vertical edge highlight (left side catches faint light)
+        housingNode_->drawLine(
+            cocos2d::Vec2(cx + 1, cabBot + 10), cocos2d::Vec2(cx + 1, cabTop - 10),
+            cocos2d::Color4F(0.14f, 0.16f, 0.14f, 0.3f));
+
+        // Horizontal panel dividers (3 sections per cabinet)
+        float sectionH = (cabTop - cabBot) / 3.0f;
+        for (int s = 1; s < 3; s++) {
+            float divY = cabBot + s * sectionH;
+            housingNode_->drawLine(
+                cocos2d::Vec2(cx + 4, divY),
+                cocos2d::Vec2(cx + cabW - 4, divY),
+                cabBorder);
+            // Small handle/latch detail on each section
+            float handleY = divY - sectionH * 0.5f;
+            housingNode_->drawSolidRect(
+                cocos2d::Vec2(cx + cabW * 0.35f, handleY - 2),
+                cocos2d::Vec2(cx + cabW * 0.65f, handleY + 2),
+                cocos2d::Color4F(0.16f, 0.17f, 0.15f, 0.5f));
+        }
+
+        // Ventilation louvers on some panels (every other cabinet)
+        if (i % 2 == 1) {
+            float ventTop = cabTop - 15.0f;
+            for (int v = 0; v < 4; v++) {
+                float vy = ventTop - v * 6.0f;
+                housingNode_->drawLine(
+                    cocos2d::Vec2(cx + 10, vy),
+                    cocos2d::Vec2(cx + cabW - 10, vy),
+                    cocos2d::Color4F(0.03f, 0.03f, 0.03f, 0.6f));
+            }
+        }
     }
 
-    // Floor
+    // === Ceiling ===
     housingNode_->drawSolidRect(
-        cocos2d::Vec2(-800, -600),
-        cocos2d::Vec2(800, -450),
-        cocos2d::Color4F(0.04f, 0.05f, 0.03f, 1.0f));
+        cocos2d::Vec2(-sceneW, cabTop),
+        cocos2d::Vec2(sceneW, sceneH),
+        cocos2d::Color4F(0.06f, 0.07f, 0.06f, 1.0f));
+
+    // Ceiling structural ribs
+    for (int cx = -700; cx <= 700; cx += 200) {
+        housingNode_->drawSolidRect(
+            cocos2d::Vec2((float)cx - 3, cabTop),
+            cocos2d::Vec2((float)cx + 3, sceneH),
+            cocos2d::Color4F(0.08f, 0.09f, 0.08f, 1.0f));
+    }
+
+    // Red night ops light strips (dimmer, more subtle)
+    for (int lx = -500; lx <= 500; lx += 250) {
+        housingNode_->drawSolidRect(
+            cocos2d::Vec2((float)lx - 15.0f, sceneH - 30.0f),
+            cocos2d::Vec2((float)lx + 15.0f, sceneH - 26.0f),
+            cocos2d::Color4F(0.22f, 0.04f, 0.04f, 0.5f));
+        // Red light glow cone downward
+        housingNode_->drawSolidRect(
+            cocos2d::Vec2((float)lx - 40.0f, sceneH - 60.0f),
+            cocos2d::Vec2((float)lx + 40.0f, sceneH - 30.0f),
+            cocos2d::Color4F(0.12f, 0.03f, 0.03f, 0.15f));
+    }
+
+    // === Floor ===
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(-sceneW, -sceneH),
+        cocos2d::Vec2(sceneW, cabBot),
+        cocos2d::Color4F(0.04f, 0.04f, 0.03f, 1.0f));
+
+    // Floor highlight (rubber matting sheen)
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(-sceneW, cabBot - 2),
+        cocos2d::Vec2(sceneW, cabBot),
+        cocos2d::Color4F(0.08f, 0.08f, 0.07f, 0.5f));
 }
 
 // ============================================================================
@@ -952,6 +1038,65 @@ void ConsoleFrame::drawBottomControls()
 }
 
 // ============================================================================
+// Writing bench — flat shelf/desk in front of the console
+// The AN/TSQ-73 has a writing surface extending toward the operator
+// ============================================================================
+
+void ConsoleFrame::drawWritingBench()
+{
+    float hw = bezelW_ * 0.5f;
+    float hh = bezelH_ * 0.5f;
+
+    float benchTop = -hh - 4.0f;         // just below the console
+    float benchH = 50.0f;                 // depth of the writing shelf
+    float benchBot = benchTop - benchH;
+    float benchOverhang = 20.0f;          // extends slightly wider than console
+
+    // Shelf underside shadow
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(-hw - benchOverhang, benchBot - 4),
+        cocos2d::Vec2(hw + benchOverhang, benchBot),
+        cocos2d::Color4F(0.03f, 0.03f, 0.03f, 0.7f));
+
+    // Shelf body — seafoam green metal to match console
+    drawRoundedRect(housingNode_,
+                    cocos2d::Vec2(-hw - benchOverhang, benchBot),
+                    cocos2d::Vec2(hw + benchOverhang, benchTop),
+                    4.0f,
+                    cocos2d::Color4F(0.44f, 0.58f, 0.50f, 1.0f),
+                    cocos2d::Color4F(0.32f, 0.44f, 0.38f, 1.0f));
+
+    // Writing surface (slightly lighter, worn smooth from use)
+    float surfInset = 4.0f;
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(-hw - benchOverhang + surfInset, benchBot + surfInset),
+        cocos2d::Vec2(hw + benchOverhang - surfInset, benchTop - 2),
+        cocos2d::Color4F(0.48f, 0.62f, 0.54f, 1.0f));
+
+    // Surface highlight (top edge catches light)
+    housingNode_->drawLine(
+        cocos2d::Vec2(-hw - benchOverhang + 6, benchTop - 1),
+        cocos2d::Vec2(hw + benchOverhang - 6, benchTop - 1),
+        cocos2d::Color4F(0.56f, 0.70f, 0.60f, 0.4f));
+
+    // Front lip (rolled edge)
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(-hw - benchOverhang + 2, benchBot),
+        cocos2d::Vec2(hw + benchOverhang - 2, benchBot + 3),
+        cocos2d::Color4F(0.38f, 0.50f, 0.42f, 1.0f));
+
+    // Pen groove / channel along front
+    housingNode_->drawLine(
+        cocos2d::Vec2(-hw * 0.3f, benchBot + 8),
+        cocos2d::Vec2(hw * 0.3f, benchBot + 8),
+        cocos2d::Color4F(0.35f, 0.46f, 0.40f, 0.6f));
+    housingNode_->drawLine(
+        cocos2d::Vec2(-hw * 0.3f, benchBot + 9),
+        cocos2d::Vec2(hw * 0.3f, benchBot + 9),
+        cocos2d::Color4F(0.50f, 0.64f, 0.55f, 0.3f));
+}
+
+// ============================================================================
 // Top indicator row — status LEDs above the portrait display
 // ============================================================================
 
@@ -1156,11 +1301,11 @@ bool ConsoleFrame::init(float scopeRadius)
     scopeRadius_ = scopeRadius;
     float scopeDia = scopeRadius * 2.0f;
     displayW_ = scopeDia + 50.0f;
-    displayH_ = displayW_ * 1.35f;
-    panelW_ = 130.0f;
-    panelGap_ = 12.0f;
-    panelH_ = displayH_ + 40.0f;
-    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 40.0f;
+    displayH_ = displayW_ * 1.25f;
+    panelW_ = 160.0f;
+    panelGap_ = 14.0f;
+    panelH_ = displayH_ + 30.0f;
+    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 60.0f;
     bezelH_ = panelH_ + 90.0f;
     return true;
 }
