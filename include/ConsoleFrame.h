@@ -49,6 +49,11 @@ public:
     float getBezelWidth() const { return bezelW_; }
     float getBezelHeight() const { return bezelH_; }
 
+    // Portrait display dimensions (for clipping mask)
+    float getDisplayWidth() const { return displayW_; }
+    float getDisplayHeight() const { return displayH_; }
+    float getDisplayCornerRadius() const { return displayCornerR_; }
+
     // Portrait display center offset (scope is centered in display)
     float getScopeCenterY() const { return displayCenterY_; }
 
@@ -109,6 +114,14 @@ private:
                          float radius,
                          const cocos2d::Color4F& fill,
                          const cocos2d::Color4F& border);
+
+    // Helper: draw an octagonal shape (rectangle with 45° chamfered corners)
+    void drawOctagon(cocos2d::DrawNode* node,
+                     const cocos2d::Vec2& origin,
+                     const cocos2d::Vec2& dest,
+                     float chamfer,
+                     const cocos2d::Color4F& fill,
+                     const cocos2d::Color4F& border);
 
     // Helper: draw a row of illuminated pushbuttons
     void drawButtonRow(cocos2d::DrawNode* node,

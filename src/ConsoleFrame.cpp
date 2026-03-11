@@ -43,17 +43,17 @@ bool ConsoleFrame::init(float scopeRadius)
     float scopeDia = scopeRadius * 2.0f;
     displayW_ = scopeDia + 50.0f;              // scope + small side margins
     displayH_ = displayW_ * 1.35f;             // portrait: 35% taller than wide
-    displayCornerR_ = 18.0f;                    // visible rounded corners on CRT
+    displayCornerR_ = 55.0f;                    // large ~5-inch rounded corners on CRT
     displayCenterY_ = 0.0f;                     // scope centered in display
 
-    // Side panels: tall and narrow (like the real console)
-    panelW_ = 100.0f;
+    // Side panels: wider for authentic control panel spacing
+    panelW_ = 130.0f;
     panelH_ = displayH_ + 40.0f;               // slightly taller than display
-    panelGap_ = 8.0f;                           // gap between panel and display
+    panelGap_ = 12.0f;                          // gap between panel and display
 
-    // Overall console extents
-    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 20.0f;
-    bezelH_ = panelH_ + 80.0f;                 // panels + top indicators + bottom bar
+    // Overall console extents (wider for bezel room and control panels)
+    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 40.0f;
+    bezelH_ = panelH_ + 90.0f;                 // panels + top indicators + bottom bar
 
     // Create draw layers
     housingNode_ = cocos2d::DrawNode::create();
@@ -151,6 +151,39 @@ void ConsoleFrame::drawRoundedRect(cocos2d::DrawNode* node,
     }
 
     node->drawPolygon(verts.data(), (int)verts.size(), fill, 1.0f, border);
+}
+
+// ============================================================================
+// Octagon helper — rectangle with 45° chamfered corners
+// ============================================================================
+
+void ConsoleFrame::drawOctagon(cocos2d::DrawNode* node,
+                                const cocos2d::Vec2& origin,
+                                const cocos2d::Vec2& dest,
+                                float chamfer,
+                                const cocos2d::Color4F& fill,
+                                const cocos2d::Color4F& border)
+{
+    float left   = std::min(origin.x, dest.x);
+    float right  = std::max(origin.x, dest.x);
+    float bottom = std::min(origin.y, dest.y);
+    float top    = std::max(origin.y, dest.y);
+
+    float c = std::min(chamfer, std::min((right - left) * 0.4f, (top - bottom) * 0.4f));
+
+    // 8 vertices, going clockwise from bottom-left chamfer
+    cocos2d::Vec2 verts[] = {
+        { left,         bottom + c },    // left side, bottom chamfer end
+        { left + c,     bottom },        // bottom side, left chamfer end
+        { right - c,    bottom },        // bottom side, right chamfer end
+        { right,        bottom + c },    // right side, bottom chamfer end
+        { right,        top - c },       // right side, top chamfer end
+        { right - c,    top },           // top side, right chamfer end
+        { left + c,     top },           // top side, left chamfer end
+        { left,         top - c }        // left side, top chamfer end
+    };
+
+    node->drawPolygon(verts, 8, fill, 1.5f, border);
 }
 
 // ============================================================================
@@ -414,48 +447,89 @@ void ConsoleFrame::drawPortraitDisplay()
     float hdh = displayH_ * 0.5f;
     float cy = displayCenterY_;
 
-    // Display bezel ring (dark metal frame around CRT, seafoam-tinted)
-    float bezelThick = 6.0f;
-    drawRoundedRect(displayNode_,
-                    cocos2d::Vec2(-hdw - bezelThick, cy - hdh - bezelThick),
-                    cocos2d::Vec2(hdw + bezelThick, cy + hdh + bezelThick),
-                    displayCornerR_ + 4.0f,
-                    cocos2d::Color4F(0.16f, 0.20f, 0.17f, 1.0f),
-                    cocos2d::Color4F(0.26f, 0.32f, 0.28f, 1.0f));
+    // === Octagonal outer bezel — seafoam green to match console housing ===
+    float bezelThick = 18.0f;
+    float chamfer = 45.0f;  // 45° cut on each corner of the octagon
 
-    // CRT glass surface (very dark green-black — the scope background)
+    // Outer octagon shadow/border (slightly darker)
+    drawOctagon(displayNode_,
+                cocos2d::Vec2(-hdw - bezelThick - 2, cy - hdh - bezelThick - 2),
+                cocos2d::Vec2(hdw + bezelThick + 2, cy + hdh + bezelThick + 2),
+                chamfer + 4.0f,
+                cocos2d::Color4F(0.32f, 0.42f, 0.36f, 1.0f),
+                cocos2d::Color4F(0.25f, 0.34f, 0.28f, 1.0f));
+
+    // Main octagonal bezel face — seafoam green painted cast metal
+    drawOctagon(displayNode_,
+                cocos2d::Vec2(-hdw - bezelThick, cy - hdh - bezelThick),
+                cocos2d::Vec2(hdw + bezelThick, cy + hdh + bezelThick),
+                chamfer,
+                cocos2d::Color4F(0.48f, 0.63f, 0.55f, 1.0f),
+                cocos2d::Color4F(0.36f, 0.48f, 0.40f, 1.0f));
+
+    // Inner lip / bevel ring around CRT opening (darker edge)
+    drawRoundedRect(displayNode_,
+                    cocos2d::Vec2(-hdw - 3, cy - hdh - 3),
+                    cocos2d::Vec2(hdw + 3, cy + hdh + 3),
+                    displayCornerR_ + 4.0f,
+                    cocos2d::Color4F(0.12f, 0.14f, 0.11f, 1.0f),
+                    cocos2d::Color4F(0.20f, 0.26f, 0.22f, 1.0f));
+
+    // === CRT glass surface — portrait rounded rectangle with large radius ===
     drawRoundedRect(displayNode_,
                     cocos2d::Vec2(-hdw, cy - hdh),
                     cocos2d::Vec2(hdw, cy + hdh),
                     displayCornerR_,
                     cocos2d::Color4F(0.02f, 0.04f, 0.02f, 1.0f),
-                    cocos2d::Color4F(0.08f, 0.10f, 0.06f, 1.0f));
+                    cocos2d::Color4F(0.06f, 0.08f, 0.05f, 1.0f));
 
     // Subtle CRT glass reflection (top-left highlight arc)
     displayNode_->drawLine(
-        cocos2d::Vec2(-hdw + displayCornerR_ + 10, cy + hdh - 8),
-        cocos2d::Vec2(-hdw + 8, cy + hdh - displayCornerR_ - 10),
-        cocos2d::Color4F(0.15f, 0.18f, 0.12f, 0.3f));
+        cocos2d::Vec2(-hdw + displayCornerR_ + 10, cy + hdh - 10),
+        cocos2d::Vec2(-hdw + 10, cy + hdh - displayCornerR_ - 10),
+        cocos2d::Color4F(0.12f, 0.16f, 0.10f, 0.25f));
 
-    // Corner mounting screws on display bezel
-    float screwOff = 8.0f;
+    // === Mounting screws on the octagonal bezel flat faces ===
+    // Place screws on the 4 cardinal flat faces of the octagon
+    float screwDist = 12.0f;  // distance from inner edge of bezel
     cocos2d::Vec2 screwPositions[] = {
-        { -hdw - bezelThick + screwOff, cy + hdh + bezelThick - screwOff },
-        {  hdw + bezelThick - screwOff, cy + hdh + bezelThick - screwOff },
-        {  hdw + bezelThick - screwOff, cy - hdh - bezelThick + screwOff },
-        { -hdw - bezelThick + screwOff, cy - hdh - bezelThick + screwOff }
+        // Top face (2 screws)
+        { -hdw * 0.35f, cy + hdh + screwDist },
+        {  hdw * 0.35f, cy + hdh + screwDist },
+        // Bottom face (2 screws)
+        { -hdw * 0.35f, cy - hdh - screwDist },
+        {  hdw * 0.35f, cy - hdh - screwDist },
+        // Left face (2 screws)
+        { -hdw - screwDist, cy + hdh * 0.25f },
+        { -hdw - screwDist, cy - hdh * 0.25f },
+        // Right face (2 screws)
+        {  hdw + screwDist, cy + hdh * 0.25f },
+        {  hdw + screwDist, cy - hdh * 0.25f },
     };
     for (const auto& sp : screwPositions) {
-        displayNode_->drawSolidCircle(sp, 3.0f, 0, 8,
-            cocos2d::Color4F(0.35f, 0.42f, 0.36f, 1.0f));
-        displayNode_->drawCircle(sp, 3.0f, 0, 8, false,
-            cocos2d::Color4F(0.24f, 0.30f, 0.26f, 1.0f));
+        // Screw recess
+        displayNode_->drawSolidCircle(sp, 3.5f, 0, 10,
+            cocos2d::Color4F(0.30f, 0.38f, 0.32f, 1.0f));
+        // Screw head
+        displayNode_->drawSolidCircle(sp, 2.5f, 0, 10,
+            cocos2d::Color4F(0.42f, 0.50f, 0.44f, 1.0f));
+        displayNode_->drawCircle(sp, 3.5f, 0, 10, false,
+            cocos2d::Color4F(0.25f, 0.32f, 0.27f, 1.0f));
         // Phillips cross
-        displayNode_->drawLine(sp + cocos2d::Vec2(-1.2f, 0), sp + cocos2d::Vec2(1.2f, 0),
-            cocos2d::Color4F(0.26f, 0.32f, 0.28f, 1.0f));
-        displayNode_->drawLine(sp + cocos2d::Vec2(0, -1.2f), sp + cocos2d::Vec2(0, 1.2f),
-            cocos2d::Color4F(0.26f, 0.32f, 0.28f, 1.0f));
+        displayNode_->drawLine(sp + cocos2d::Vec2(-1.5f, 0), sp + cocos2d::Vec2(1.5f, 0),
+            cocos2d::Color4F(0.28f, 0.34f, 0.30f, 1.0f));
+        displayNode_->drawLine(sp + cocos2d::Vec2(0, -1.5f), sp + cocos2d::Vec2(0, 1.5f),
+            cocos2d::Color4F(0.28f, 0.34f, 0.30f, 1.0f));
     }
+
+    // Bezel highlight (top face of octagon catches light)
+    float topFaceLeft = -hdw + chamfer * 0.3f;
+    float topFaceRight = hdw - chamfer * 0.3f;
+    float topFaceY = cy + hdh + bezelThick - 2;
+    displayNode_->drawLine(
+        cocos2d::Vec2(topFaceLeft, topFaceY),
+        cocos2d::Vec2(topFaceRight, topFaceY),
+        cocos2d::Color4F(0.58f, 0.72f, 0.62f, 0.4f));
 }
 
 // ============================================================================
@@ -1083,11 +1157,11 @@ bool ConsoleFrame::init(float scopeRadius)
     float scopeDia = scopeRadius * 2.0f;
     displayW_ = scopeDia + 50.0f;
     displayH_ = displayW_ * 1.35f;
-    panelW_ = 100.0f;
-    panelGap_ = 8.0f;
+    panelW_ = 130.0f;
+    panelGap_ = 12.0f;
     panelH_ = displayH_ + 40.0f;
-    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 20.0f;
-    bezelH_ = panelH_ + 80.0f;
+    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 40.0f;
+    bezelH_ = panelH_ + 90.0f;
     return true;
 }
 
