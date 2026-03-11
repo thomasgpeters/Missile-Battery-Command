@@ -33,6 +33,12 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     message(STATUS "Found cocos2d-x at: ${COCOS2DX_ROOT}")
     set(BUILD_ENGINE_DONE ON)
 
+    # Set internal variables that cocos2d-x expects. Normally these are set
+    # by cocos2d-x's own root CMakeLists.txt, but since we include the
+    # cocos/ subdirectory directly we must define them ourselves.
+    set(COCOS2DX_ROOT_PATH "${COCOS2DX_ROOT}")
+    set(EXTERNAL_DIR "${COCOS2DX_ROOT}/external")
+
     # Include cocos2d-x build
     add_subdirectory(${COCOS2DX_ROOT}/cocos ${ENGINE_BINARY_PATH}/cocos/core)
     set(COCOS2D_FOUND TRUE)
@@ -55,6 +61,8 @@ set(GAME_SOURCES
     src/AppDelegate.cpp
     src/RadarScene.cpp
     src/RadarDisplay.cpp
+    src/ConsoleFrame.cpp
+    src/IntegratedConsoleScene.cpp
     src/Aircraft.cpp
     src/AircraftGenerator.cpp
     src/IFFSystem.cpp
@@ -73,6 +81,8 @@ set(GAME_HEADERS
     include/AppDelegate.h
     include/RadarScene.h
     include/RadarDisplay.h
+    include/ConsoleFrame.h
+    include/IntegratedConsoleScene.h
     include/Aircraft.h
     include/AircraftGenerator.h
     include/IFFSystem.h
@@ -126,6 +136,8 @@ set(GAME_LIB_SOURCES
     src/AppDelegate.cpp
     src/RadarScene.cpp
     src/RadarDisplay.cpp
+    src/ConsoleFrame.cpp
+    src/IntegratedConsoleScene.cpp
     src/Aircraft.cpp
     src/AircraftGenerator.cpp
     src/IFFSystem.cpp
