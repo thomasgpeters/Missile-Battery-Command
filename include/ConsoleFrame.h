@@ -13,24 +13,23 @@
 #include "cocos2d.h"
 
 // ============================================================================
-// ConsoleFrame — AN/TSQ-73 Display Console housing with live data panels
+// ConsoleFrame — AN/TSQ-73 Missile Battery Command Console
 //
-// Draws the physical console structure around the PPI scope:
-//   - Metal housing with rubber scope bezel
-//   - Left panel:  Live track table (LED-style readout)
-//   - Right panel: Battery status, HQ status, threat count
-//   - Bottom strip: Rotary knobs, toggle switches
-//   - Top strip: Indicator LEDs (PWR, RDR, IFF, WPN, COM)
-//   - Score/level/message bar below the console
-//
-// This is both decorative (the console housing) and functional (live data
-// panels replace the static button arrays from the reference photo).
+// Authentic portrait-format console based on the real AN/TSQ-73:
+//   - Portrait bezel (~25% taller than wide) with rounded corners
+//   - Round PPI radar scope centered in the bezel
+//   - Left side: Analog illuminated button arrays + numeric keypad
+//   - Right side: Console settings button arrays
+//   - Bottom-left: Fire command action buttons
+//   - Bottom-right: Small joystick
+//   - Top: Status indicator row
+//   - Below console: Score/level/message bar
 // ============================================================================
 
 class ConsoleFrame : public cocos2d::Node {
 public:
-    static ConsoleFrame* create(float scopeRadius, float panelWidth = 160.0f);
-    virtual bool init(float scopeRadius, float panelWidth);
+    static ConsoleFrame* create(float scopeRadius);
+    virtual bool init(float scopeRadius);
 
     void update(float dt) override;
 
@@ -47,11 +46,16 @@ public:
     void addMessage(const std::string& msg);
 
     float getScopeRadius() const { return scopeRadius_; }
-    float getPanelWidth() const { return panelWidth_; }
+
+    // Bezel dimensions (for scene layout)
+    float getBezelWidth() const { return bezelW_; }
+    float getBezelHeight() const { return bezelH_; }
 
 private:
     float scopeRadius_;
-    float panelWidth_;
+    float bezelW_;           // total bezel width
+    float bezelH_;           // total bezel height (25% taller than wide)
+    float cornerRadius_;     // rounded corner radius
 
     // Data sources
     TrackManager* trackManager_;
@@ -67,21 +71,48 @@ private:
 
     // Draw nodes (layered)
     cocos2d::DrawNode* housingNode_;     // Static: console housing, bezel
-    cocos2d::DrawNode* dataPanelNode_;   // Dynamic: live data text in panels
-    cocos2d::Node*     dataLabelNode_;   // Dynamic: text labels for data
+    cocos2d::DrawNode* buttonNode_;      // Static: analog button arrays
+    cocos2d::DrawNode* dynamicNode_;     // Dynamic: lit button states, indicators
+    cocos2d::Node*     labelNode_;       // Dynamic: text labels
 
-    // Static drawing (called once)
-    void drawConsoleHousing();
-    void drawScopeBezel();
-    void drawBottomControlStrip();
-    void drawTopIndicators();
+    // Static drawing (called once in init)
     void drawShelterBackground();
-    void drawCornerWedges(float r);
+    void drawBezel();
+    void drawScopeRing();
+    void drawLeftButtonPanel();
+    void drawRightButtonPanel();
+    void drawBottomLeftFireButtons();
+    void drawBottomRightJoystick();
+    void drawTopIndicatorRow();
+    void drawManufacturerPlate();
+
+    // Helper: draw a rounded rectangle
+    void drawRoundedRect(cocos2d::DrawNode* node,
+                         const cocos2d::Vec2& origin,
+                         const cocos2d::Vec2& dest,
+                         float radius,
+                         const cocos2d::Color4F& fill,
+                         const cocos2d::Color4F& border);
+
+    // Helper: draw a row of illuminated pushbuttons
+    void drawButtonRow(cocos2d::DrawNode* node,
+                       float x, float y, int count,
+                       float btnW, float btnH, float gap,
+                       const cocos2d::Color4F& btnColor,
+                       const cocos2d::Color4F& litColor,
+                       bool vertical = false);
+
+    // Helper: draw a single button with label
+    void drawLabeledButton(cocos2d::DrawNode* node,
+                           float cx, float cy,
+                           float w, float h,
+                           const cocos2d::Color4F& color,
+                           const char* label,
+                           float fontSize = 6.0f);
 
     // Dynamic drawing (called every frame)
-    void drawLeftPanel();    // Track table
-    void drawRightPanel();   // Battery + HQ + threat
-    void drawBottomBar();    // Score, level, messages
+    void drawDynamicIndicators();
+    void drawBottomBar();
 };
 
 #else
@@ -90,8 +121,8 @@ private:
 // ============================================================================
 class ConsoleFrame {
 public:
-    static ConsoleFrame* create(float scopeRadius, float panelWidth = 160.0f);
-    bool init(float scopeRadius, float panelWidth);
+    static ConsoleFrame* create(float scopeRadius);
+    bool init(float scopeRadius);
     void update(float dt);
 
     void setTrackManager(TrackManager* mgr) { trackManager_ = mgr; }
@@ -105,11 +136,13 @@ public:
     void addMessage(const std::string& msg);
 
     float getScopeRadius() const { return scopeRadius_; }
-    float getPanelWidth() const { return panelWidth_; }
+    float getBezelWidth() const { return bezelW_; }
+    float getBezelHeight() const { return bezelH_; }
 
 private:
     float scopeRadius_ = 280.0f;
-    float panelWidth_ = 160.0f;
+    float bezelW_ = 0.0f;
+    float bezelH_ = 0.0f;
     TrackManager* trackManager_ = nullptr;
     FireControlSystem* fireControl_ = nullptr;
     ThreatBoard* threatBoard_ = nullptr;
