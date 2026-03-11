@@ -22,6 +22,12 @@ export class ConsoleFrame extends Component {
     @property
     panelWidth: number = 160;
 
+    // In dual-console mode the shelter background is drawn by
+    // DualConsoleScene, so each ConsoleFrame should skip its own
+    // full-screen background fill to avoid covering the radar.
+    @property
+    drawBackground: boolean = true;
+
     private graphics: Graphics | null = null;
 
     start(): void {
@@ -36,7 +42,7 @@ export class ConsoleFrame extends Component {
         if (!this.graphics) return;
         this.graphics.clear();
 
-        this.drawShelterBackground();
+        if (this.drawBackground) this.drawShelterBackground();
         this.drawConsoleHousing();
         this.drawScopeBezel();
         this.drawLeftButtonPanel();
@@ -96,18 +102,23 @@ export class ConsoleFrame extends Component {
         const g = this.graphics!;
         const r = this.scopeRadius;
 
-        // Rubber scope hood — dark ring around the PPI
-        // Outer ring (rubber hood edge)
-        g.fillColor = new Color(20, 20, 20, 255);
-        g.circle(0, 0, r + 18);
-        g.fill();
+        // Rubber scope hood — annular ring AROUND the PPI scope.
+        // We must NOT fill the center or we'll paint over the radar display.
+        // Draw the ring as a thick stroke instead of filled circles.
 
-        // Inner hood bevel
-        g.fillColor = new Color(30, 30, 30, 255);
-        g.circle(0, 0, r + 12);
-        g.fill();
+        // Outer rubber hood ring (wide dark band around scope edge)
+        g.strokeColor = new Color(20, 20, 20, 255);
+        g.lineWidth = 18;
+        g.circle(0, 0, r + 9);  // centered in the 18px band
+        g.stroke();
 
-        // Metal bezel ring
+        // Inner hood bevel highlight
+        g.strokeColor = new Color(30, 30, 30, 255);
+        g.lineWidth = 6;
+        g.circle(0, 0, r + 3);
+        g.stroke();
+
+        // Metal bezel ring (outer)
         g.strokeColor = new Color(80, 85, 72, 255);
         g.lineWidth = 3;
         g.circle(0, 0, r + 18);
@@ -116,7 +127,7 @@ export class ConsoleFrame extends Component {
         // Inner bezel ring
         g.strokeColor = new Color(50, 55, 45, 255);
         g.lineWidth = 2;
-        g.circle(0, 0, r + 6);
+        g.circle(0, 0, r + 1);
         g.stroke();
 
         // Scope mounting screws (4 corners)
