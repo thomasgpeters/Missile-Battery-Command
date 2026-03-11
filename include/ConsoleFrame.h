@@ -13,9 +13,9 @@
 #include "cocos2d.h"
 
 // ============================================================================
-// ConsoleFrame — AN/TSQ-72 Missile Battery Command Console
+// ConsoleFrame — AN/TSQ-73 Missile Battery Command Console
 //
-// Authentic portrait-format console based on the real AN/TSQ-72:
+// Authentic portrait-format console based on the real AN/TSQ-73:
 //   - Portrait bezel (~25% taller than wide) with rounded corners
 //   - Round PPI radar scope centered in the bezel
 //   - Left side: Analog illuminated button arrays + numeric keypad

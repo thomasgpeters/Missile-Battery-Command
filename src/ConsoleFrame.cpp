@@ -5,7 +5,7 @@
 
 #if USE_COCOS2DX
 // ============================================================================
-// Cocos2d-x ConsoleFrame — AN/TSQ-72 Analog Console
+// Cocos2d-x ConsoleFrame — AN/TSQ-73 Analog Console
 // ============================================================================
 
 ConsoleFrame* ConsoleFrame::create(float scopeRadius)
@@ -32,7 +32,7 @@ bool ConsoleFrame::init(float scopeRadius)
     level_ = 1;
     selectedTrackId_ = -1;
 
-    // AN/TSQ-72 bezel: portrait format, ~25% taller than wide
+    // AN/TSQ-73 bezel: portrait format, ~25% taller than wide
     // The scope sits in the upper portion; buttons fill the sides and bottom
     bezelW_ = scopeRadius * 2.0f + 240.0f;   // scope + side button panels
     bezelH_ = bezelW_ * 1.25f;                // 25% taller than wide
@@ -763,7 +763,7 @@ void ConsoleFrame::drawManufacturerPlate()
     housingNode_->addChild(mfgLabel);
 
     auto* modelLabel = cocos2d::Label::createWithSystemFont(
-        "AN/TSQ-72", "Courier", 5);
+        "AN/TSQ-73", "Courier", 5);
     modelLabel->setPosition(cocos2d::Vec2(0, plateY + 1));
     modelLabel->setTextColor(cocos2d::Color4B(40, 40, 35, 180));
     housingNode_->addChild(modelLabel);

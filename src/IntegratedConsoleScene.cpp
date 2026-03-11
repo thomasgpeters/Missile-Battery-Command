@@ -63,7 +63,7 @@ void IntegratedConsoleScene::initConsole()
     auto visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
     auto center = cocos2d::Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.5f);
 
-    // AN/TSQ-72 portrait console: bezel is 25% taller than wide.
+    // AN/TSQ-73 portrait console: bezel is 25% taller than wide.
     // Size the radar scope so the full bezel fits on screen.
     // bezelW = 2*r + 240, bezelH = bezelW * 1.25
     float maxBezelW = visibleSize.width * 0.85f;
@@ -73,7 +73,7 @@ void IntegratedConsoleScene::initConsole()
     float rFromW = (maxBezelW - 240.0f) * 0.5f;
     float radarRadius = std::max(80.0f, std::min(rFromH, rFromW));
 
-    // Console frame — AN/TSQ-72 analog console housing
+    // Console frame — AN/TSQ-73 analog console housing
     consoleFrame_ = ConsoleFrame::create(radarRadius);
     consoleFrame_->setPosition(center);
     consoleFrame_->setTrackManager(&trackManager_);
