@@ -15,13 +15,11 @@
 // ============================================================================
 // ConsoleFrame — AN/TSQ-73 Missile Battery Command Console
 //
-// Authentic portrait-format console based on the real AN/TSQ-73:
-//   - Portrait bezel (~25% taller than wide) with rounded corners
-//   - Round PPI radar scope centered in the bezel
-//   - Left side: Analog illuminated button arrays + numeric keypad
-//   - Right side: Console settings button arrays
-//   - Bottom-left: Fire command action buttons
-//   - Bottom-right: Small joystick
+// Authentic console layout based on the real AN/TSQ-73:
+//   - Central portrait display with rounded corners (contains PPI scope)
+//   - Separate tall narrow left panel: illuminated button arrays + keypad
+//   - Separate tall narrow right panel: console settings + rotary controls
+//   - Bottom-center: Fire command buttons + joystick
 //   - Top: Status indicator row
 //   - Below console: Score/level/message bar
 // ============================================================================
@@ -47,15 +45,30 @@ public:
 
     float getScopeRadius() const { return scopeRadius_; }
 
-    // Bezel dimensions (for scene layout)
+    // Overall console dimensions (for scene layout)
     float getBezelWidth() const { return bezelW_; }
     float getBezelHeight() const { return bezelH_; }
 
+    // Portrait display center offset (scope is centered in display)
+    float getScopeCenterY() const { return displayCenterY_; }
+
 private:
     float scopeRadius_;
-    float bezelW_;           // total bezel width
-    float bezelH_;           // total bezel height (25% taller than wide)
-    float cornerRadius_;     // rounded corner radius
+
+    // Overall console extents
+    float bezelW_;
+    float bezelH_;
+
+    // Central portrait display (rounded-corner rectangle containing the scope)
+    float displayW_;         // display viewport width
+    float displayH_;         // display viewport height (portrait: taller than wide)
+    float displayCenterY_;   // Y offset of display center from console center
+    float displayCornerR_;   // rounded corner radius on the display
+
+    // Side panel dimensions
+    float panelW_;           // width of each side panel
+    float panelH_;           // height of each side panel
+    float panelGap_;         // gap between panel and display
 
     // Data sources
     TrackManager* trackManager_;
@@ -70,19 +83,21 @@ private:
     static const int MAX_MESSAGES = 6;
 
     // Draw nodes (layered)
-    cocos2d::DrawNode* housingNode_;     // Static: console housing, bezel
-    cocos2d::DrawNode* buttonNode_;      // Static: analog button arrays
+    cocos2d::DrawNode* housingNode_;     // Static: console housing, chassis
+    cocos2d::DrawNode* displayNode_;     // Static: portrait display viewport
+    cocos2d::DrawNode* panelNode_;       // Static: side control panels
+    cocos2d::DrawNode* buttonNode_;      // Static: buttons on panels
     cocos2d::DrawNode* dynamicNode_;     // Dynamic: lit button states, indicators
     cocos2d::Node*     labelNode_;       // Dynamic: text labels
 
     // Static drawing (called once in init)
     void drawShelterBackground();
-    void drawBezel();
+    void drawChassis();
+    void drawPortraitDisplay();
     void drawScopeRing();
-    void drawLeftButtonPanel();
-    void drawRightButtonPanel();
-    void drawBottomLeftFireButtons();
-    void drawBottomRightJoystick();
+    void drawLeftPanel();
+    void drawRightPanel();
+    void drawBottomControls();
     void drawTopIndicatorRow();
     void drawManufacturerPlate();
 
@@ -138,11 +153,18 @@ public:
     float getScopeRadius() const { return scopeRadius_; }
     float getBezelWidth() const { return bezelW_; }
     float getBezelHeight() const { return bezelH_; }
+    float getScopeCenterY() const { return displayCenterY_; }
 
 private:
     float scopeRadius_ = 280.0f;
     float bezelW_ = 0.0f;
     float bezelH_ = 0.0f;
+    float displayW_ = 0.0f;
+    float displayH_ = 0.0f;
+    float displayCenterY_ = 0.0f;
+    float panelW_ = 0.0f;
+    float panelGap_ = 0.0f;
+    float panelH_ = 0.0f;
     TrackManager* trackManager_ = nullptr;
     FireControlSystem* fireControl_ = nullptr;
     ThreatBoard* threatBoard_ = nullptr;
