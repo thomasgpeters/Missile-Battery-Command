@@ -101,7 +101,24 @@ else
     cd "$COCOS_DIR"
     python3 download-deps.py --remove-download yes 2>/dev/null || \
     python download-deps.py --remove-download yes 2>/dev/null || \
-    echo "  NOTE: download-deps.py failed — you may need to run it manually."
+    echo "  WARNING: download-deps.py failed."
+
+    # Verify that external/ was created — it's required for the build.
+    # If download-deps.py failed, the external/ directory won't exist and
+    # CMake will fail with "add_subdirectory given source /external which
+    # is not an existing directory" and "Unknown CMake command
+    # use_cocos2dx_compile_define".
+    if [ ! -d "$COCOS_DIR/external" ]; then
+        echo ""
+        echo "  ERROR: external/ directory was not created."
+        echo "  download-deps.py must succeed before building."
+        echo ""
+        echo "  Try running manually:"
+        echo "    cd $COCOS_DIR && python3 download-deps.py --remove-download yes"
+        echo ""
+        echo "  If the script keeps failing, check your Python and network setup."
+        exit 1
+    fi
 
     # NOTE: We intentionally skip 'git submodule update'. The submodules
     # (ccs-res, bindings-generator, etc.) are only needed for cocos2d-x's
