@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <random>
 
 #if USE_COCOS2DX
 // ============================================================================
@@ -72,6 +73,7 @@ bool ConsoleFrame::init(float scopeRadius)
     // Draw all static elements once
     drawShelterBackground();
     drawChassis();
+    drawPatina();
     drawPortraitDisplay();
     drawScopeRing();
     drawLeftPanel();
@@ -279,9 +281,9 @@ void ConsoleFrame::drawChassis()
     float hw = bezelW_ * 0.5f;
     float hh = bezelH_ * 0.5f;
 
-    // Outer chassis (cream/tan painted metal)
-    cocos2d::Color4F chassisColor(0.72f, 0.70f, 0.62f, 1.0f);
-    cocos2d::Color4F chassisBorder(0.55f, 0.53f, 0.47f, 1.0f);
+    // Outer chassis — AN/TSQ-73 seafoam green painted metal (FS 24491)
+    cocos2d::Color4F chassisColor(0.52f, 0.68f, 0.60f, 1.0f);
+    cocos2d::Color4F chassisBorder(0.38f, 0.52f, 0.45f, 1.0f);
 
     drawRoundedRect(housingNode_,
                     cocos2d::Vec2(-hw, -hh),
@@ -289,10 +291,10 @@ void ConsoleFrame::drawChassis()
                     12.0f,
                     chassisColor, chassisBorder);
 
-    // Inner recessed work surface
+    // Inner recessed work surface (slightly darker seafoam)
     float inset = 8.0f;
-    cocos2d::Color4F recessColor(0.58f, 0.56f, 0.50f, 1.0f);
-    cocos2d::Color4F recessBorder(0.45f, 0.43f, 0.38f, 1.0f);
+    cocos2d::Color4F recessColor(0.42f, 0.56f, 0.49f, 1.0f);
+    cocos2d::Color4F recessBorder(0.32f, 0.44f, 0.38f, 1.0f);
 
     drawRoundedRect(housingNode_,
                     cocos2d::Vec2(-hw + inset, -hh + inset),
@@ -300,16 +302,106 @@ void ConsoleFrame::drawChassis()
                     10.0f,
                     recessColor, recessBorder);
 
-    // Top highlight bevel
+    // Top highlight bevel (seafoam lighter)
     housingNode_->drawLine(
         cocos2d::Vec2(-hw + 12, hh - 1),
         cocos2d::Vec2(hw - 12, hh - 1),
-        cocos2d::Color4F(0.80f, 0.78f, 0.70f, 0.6f));
+        cocos2d::Color4F(0.62f, 0.76f, 0.68f, 0.6f));
     // Bottom shadow bevel
     housingNode_->drawLine(
         cocos2d::Vec2(-hw + 12, -hh + 1),
         cocos2d::Vec2(hw - 12, -hh + 1),
-        cocos2d::Color4F(0.40f, 0.38f, 0.33f, 0.8f));
+        cocos2d::Color4F(0.28f, 0.38f, 0.32f, 0.8f));
+}
+
+// ============================================================================
+// Patina — weathering, scuffs, and paint wear on the chassis
+// Gives the console a battle-hardened, field-deployed appearance
+// ============================================================================
+
+void ConsoleFrame::drawPatina()
+{
+    float hw = bezelW_ * 0.5f;
+    float hh = bezelH_ * 0.5f;
+
+    // Use a deterministic seed for consistent weathering pattern
+    std::mt19937 rng(42);
+    std::uniform_real_distribution<float> xDist(-hw + 15, hw - 15);
+    std::uniform_real_distribution<float> yDist(-hh + 15, hh - 15);
+    std::uniform_real_distribution<float> sizeDist(2.0f, 12.0f);
+    std::uniform_real_distribution<float> alphaDist(0.03f, 0.09f);
+    std::uniform_real_distribution<float> angleDist(0.0f, 6.28f);
+    std::uniform_real_distribution<float> lenDist(8.0f, 35.0f);
+
+    // --- Paint wear spots (darker patches where paint has worn thin) ---
+    for (int i = 0; i < 25; i++) {
+        float x = xDist(rng);
+        float y = yDist(rng);
+        float size = sizeDist(rng);
+        float alpha = alphaDist(rng);
+
+        housingNode_->drawSolidCircle(
+            cocos2d::Vec2(x, y), size, 0, 8,
+            cocos2d::Color4F(0.0f, 0.0f, 0.0f, alpha));
+    }
+
+    // --- Lighter oxidation patches (faded seafoam green spots) ---
+    for (int i = 0; i < 15; i++) {
+        float x = xDist(rng);
+        float y = yDist(rng);
+        float size = sizeDist(rng) * 1.5f;
+        float alpha = alphaDist(rng) * 0.7f;
+
+        housingNode_->drawSolidCircle(
+            cocos2d::Vec2(x, y), size, 0, 8,
+            cocos2d::Color4F(0.65f, 0.75f, 0.68f, alpha));
+    }
+
+    // --- Scratch marks (thin lines from equipment handling) ---
+    for (int i = 0; i < 12; i++) {
+        float x = xDist(rng);
+        float y = yDist(rng);
+        float angle = angleDist(rng);
+        float len = lenDist(rng);
+        float alpha = alphaDist(rng) * 0.8f;
+
+        cocos2d::Vec2 start(x, y);
+        cocos2d::Vec2 end(x + cosf(angle) * len, y + sinf(angle) * len);
+
+        housingNode_->drawLine(start, end,
+            cocos2d::Color4F(0.30f, 0.38f, 0.32f, alpha));
+    }
+
+    // --- Edge wear (brighter metal showing through at corners and edges) ---
+    // Top edge wear
+    for (int i = 0; i < 8; i++) {
+        float x = xDist(rng);
+        float len = sizeDist(rng) * 2.0f;
+        float alpha = alphaDist(rng) * 0.6f;
+        housingNode_->drawLine(
+            cocos2d::Vec2(x, hh - 4), cocos2d::Vec2(x + len, hh - 5),
+            cocos2d::Color4F(0.55f, 0.60f, 0.53f, alpha));
+    }
+    // Bottom edge wear
+    for (int i = 0; i < 6; i++) {
+        float x = xDist(rng);
+        float len = sizeDist(rng) * 2.0f;
+        float alpha = alphaDist(rng) * 0.6f;
+        housingNode_->drawLine(
+            cocos2d::Vec2(x, -hh + 4), cocos2d::Vec2(x + len, -hh + 5),
+            cocos2d::Color4F(0.55f, 0.60f, 0.53f, alpha));
+    }
+
+    // --- Subtle dust/grime accumulation in recessed areas ---
+    float inset = 10.0f;
+    housingNode_->drawLine(
+        cocos2d::Vec2(-hw + inset, -hh + inset + 1),
+        cocos2d::Vec2(hw - inset, -hh + inset + 1),
+        cocos2d::Color4F(0.0f, 0.0f, 0.0f, 0.06f));
+    housingNode_->drawLine(
+        cocos2d::Vec2(-hw + inset, -hh + inset + 2),
+        cocos2d::Vec2(hw - inset, -hh + inset + 2),
+        cocos2d::Color4F(0.0f, 0.0f, 0.0f, 0.04f));
 }
 
 // ============================================================================
@@ -322,14 +414,14 @@ void ConsoleFrame::drawPortraitDisplay()
     float hdh = displayH_ * 0.5f;
     float cy = displayCenterY_;
 
-    // Display bezel ring (dark metal frame around CRT)
+    // Display bezel ring (dark metal frame around CRT, seafoam-tinted)
     float bezelThick = 6.0f;
     drawRoundedRect(displayNode_,
                     cocos2d::Vec2(-hdw - bezelThick, cy - hdh - bezelThick),
                     cocos2d::Vec2(hdw + bezelThick, cy + hdh + bezelThick),
                     displayCornerR_ + 4.0f,
-                    cocos2d::Color4F(0.18f, 0.18f, 0.15f, 1.0f),
-                    cocos2d::Color4F(0.30f, 0.28f, 0.24f, 1.0f));
+                    cocos2d::Color4F(0.16f, 0.20f, 0.17f, 1.0f),
+                    cocos2d::Color4F(0.26f, 0.32f, 0.28f, 1.0f));
 
     // CRT glass surface (very dark green-black — the scope background)
     drawRoundedRect(displayNode_,
@@ -355,14 +447,14 @@ void ConsoleFrame::drawPortraitDisplay()
     };
     for (const auto& sp : screwPositions) {
         displayNode_->drawSolidCircle(sp, 3.0f, 0, 8,
-            cocos2d::Color4F(0.40f, 0.38f, 0.33f, 1.0f));
+            cocos2d::Color4F(0.35f, 0.42f, 0.36f, 1.0f));
         displayNode_->drawCircle(sp, 3.0f, 0, 8, false,
-            cocos2d::Color4F(0.28f, 0.26f, 0.22f, 1.0f));
+            cocos2d::Color4F(0.24f, 0.30f, 0.26f, 1.0f));
         // Phillips cross
         displayNode_->drawLine(sp + cocos2d::Vec2(-1.2f, 0), sp + cocos2d::Vec2(1.2f, 0),
-            cocos2d::Color4F(0.30f, 0.28f, 0.24f, 1.0f));
+            cocos2d::Color4F(0.26f, 0.32f, 0.28f, 1.0f));
         displayNode_->drawLine(sp + cocos2d::Vec2(0, -1.2f), sp + cocos2d::Vec2(0, 1.2f),
-            cocos2d::Color4F(0.30f, 0.28f, 0.24f, 1.0f));
+            cocos2d::Color4F(0.26f, 0.32f, 0.28f, 1.0f));
     }
 }
 
@@ -432,62 +524,68 @@ void ConsoleFrame::drawLeftPanel()
     float hpw = panelW_ * 0.5f;
     float hph = panelH_ * 0.5f;
 
-    // Panel housing (dark olive/gray metal)
+    // Panel housing — seafoam green to match chassis, worn/weathered
     drawRoundedRect(panelNode_,
                     cocos2d::Vec2(panelCX - hpw, -hph),
                     cocos2d::Vec2(panelCX + hpw, hph),
                     6.0f,
-                    cocos2d::Color4F(0.22f, 0.23f, 0.19f, 1.0f),
-                    cocos2d::Color4F(0.35f, 0.34f, 0.28f, 1.0f));
+                    cocos2d::Color4F(0.40f, 0.52f, 0.44f, 1.0f),
+                    cocos2d::Color4F(0.30f, 0.40f, 0.34f, 1.0f));
 
-    // Inner recess
-    float inset = 4.0f;
+    // Inner recess (dark recessed panel area)
+    float inset = 6.0f;
     panelNode_->drawSolidRect(
         cocos2d::Vec2(panelCX - hpw + inset, -hph + inset),
         cocos2d::Vec2(panelCX + hpw - inset, hph - inset),
-        cocos2d::Color4F(0.16f, 0.17f, 0.14f, 1.0f));
+        cocos2d::Color4F(0.14f, 0.16f, 0.13f, 1.0f));
 
     // --- Layout buttons top to bottom ---
-    float btnW = 20.0f;
-    float btnH = 14.0f;
-    float gap = 3.0f;
-    float pLeft = panelCX - hpw + inset + 4.0f;
-    float usableW = panelW_ - 2.0f * inset - 8.0f;
+    // Larger buttons with generous spacing for gloved-hand operation
+    float btnW = 22.0f;
+    float btnH = 16.0f;
+    float gap = 6.0f;
+    float padding = 10.0f;
+    float pLeft = panelCX - hpw + inset + padding;
+    float usableW = panelW_ - 2.0f * inset - 2.0f * padding;
     int cols = std::max(1, (int)(usableW / (btnW + gap)));
     float startX = pLeft + (usableW - cols * (btnW + gap) + gap) * 0.5f;
 
-    cocos2d::Color4F btnFace(0.68f, 0.66f, 0.58f, 1.0f);
+    cocos2d::Color4F btnFace(0.62f, 0.60f, 0.52f, 1.0f);
     cocos2d::Color4F dimLit(0.15f, 0.30f, 0.10f, 0.4f);
     cocos2d::Color4F amberLit(0.50f, 0.35f, 0.05f, 0.5f);
 
     // Section label
     auto* trkLabel = cocos2d::Label::createWithSystemFont("TRACK MGMT", "Courier", 6);
-    trkLabel->setPosition(cocos2d::Vec2(panelCX, hph - 14));
-    trkLabel->setTextColor(cocos2d::Color4B(160, 160, 140, 200));
+    trkLabel->setPosition(cocos2d::Vec2(panelCX, hph - 16));
+    trkLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 200));
     panelNode_->addChild(trkLabel);
 
     // Upper illuminated button array: 7 rows
-    float rowTop = hph - 24.0f;
+    float rowTop = hph - 28.0f;
     for (int row = 0; row < 7; row++) {
-        float rowY = rowTop - row * (btnH + gap + 2.0f);
+        float rowY = rowTop - row * (btnH + gap + 3.0f);
         cocos2d::Color4F litColor = (row < 2) ? amberLit : dimLit;
         drawButtonRow(buttonNode_, startX, rowY, cols, btnW, btnH, gap,
                       btnFace, litColor);
     }
 
     // --- Numeric keypad ---
-    float keypadTop = rowTop - 7 * (btnH + gap + 2.0f) - 10.0f;
-    float keyW = 18.0f;
-    float keyH = 16.0f;
-    float keyGap = 3.0f;
+    float keypadTop = rowTop - 7 * (btnH + gap + 3.0f) - 14.0f;
+    float keyW = 20.0f;
+    float keyH = 18.0f;
+    float keyGap = 5.0f;
 
     float kpLeft = panelCX - (3 * (keyW + keyGap) - keyGap) * 0.5f;
 
-    // Keypad background
+    // Keypad background with border
     buttonNode_->drawSolidRect(
-        cocos2d::Vec2(kpLeft - 4, keypadTop - 4 * (keyH + keyGap) - 4),
-        cocos2d::Vec2(kpLeft + 3 * (keyW + keyGap) + 4, keypadTop + 4),
-        cocos2d::Color4F(0.12f, 0.12f, 0.10f, 1.0f));
+        cocos2d::Vec2(kpLeft - 6, keypadTop - 4 * (keyH + keyGap) - 6),
+        cocos2d::Vec2(kpLeft + 3 * (keyW + keyGap) + 6, keypadTop + 6),
+        cocos2d::Color4F(0.10f, 0.12f, 0.09f, 1.0f));
+    buttonNode_->drawRect(
+        cocos2d::Vec2(kpLeft - 6, keypadTop - 4 * (keyH + keyGap) - 6),
+        cocos2d::Vec2(kpLeft + 3 * (keyW + keyGap) + 6, keypadTop + 6),
+        cocos2d::Color4F(0.28f, 0.36f, 0.30f, 0.6f));
 
     const char* keyLabels[] = {
         "7", "8", "9",
@@ -495,9 +593,9 @@ void ConsoleFrame::drawLeftPanel()
         "1", "2", "3",
         "CLR", "0", "ENT"
     };
-    cocos2d::Color4F keyColor(0.62f, 0.60f, 0.54f, 1.0f);
-    cocos2d::Color4F entColor(0.45f, 0.55f, 0.40f, 1.0f);
-    cocos2d::Color4F clrColor(0.55f, 0.40f, 0.35f, 1.0f);
+    cocos2d::Color4F keyColor(0.58f, 0.56f, 0.50f, 1.0f);
+    cocos2d::Color4F entColor(0.40f, 0.52f, 0.38f, 1.0f);
+    cocos2d::Color4F clrColor(0.52f, 0.38f, 0.34f, 1.0f);
 
     for (int row = 0; row < 4; row++) {
         for (int col = 0; col < 3; col++) {
@@ -514,17 +612,17 @@ void ConsoleFrame::drawLeftPanel()
     }
 
     // --- Lower function buttons ---
-    float funcTop = keypadTop - 4 * (keyH + keyGap) - 14.0f;
-    cocos2d::Color4F funcFace(0.65f, 0.63f, 0.56f, 1.0f);
+    float funcTop = keypadTop - 4 * (keyH + keyGap) - 18.0f;
+    cocos2d::Color4F funcFace(0.58f, 0.56f, 0.50f, 1.0f);
     cocos2d::Color4F funcLit(0.10f, 0.35f, 0.10f, 0.5f);
 
     auto* dispLabel = cocos2d::Label::createWithSystemFont("DISPLAY", "Courier", 6);
-    dispLabel->setPosition(cocos2d::Vec2(panelCX, funcTop + 10));
-    dispLabel->setTextColor(cocos2d::Color4B(160, 160, 140, 200));
+    dispLabel->setPosition(cocos2d::Vec2(panelCX, funcTop + 12));
+    dispLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 200));
     panelNode_->addChild(dispLabel);
 
     for (int row = 0; row < 5; row++) {
-        float rowY = funcTop - row * (btnH + gap + 2.0f);
+        float rowY = funcTop - row * (btnH + gap + 3.0f);
         drawButtonRow(buttonNode_, startX, rowY, cols, btnW, btnH, gap,
                       funcFace, funcLit);
     }
@@ -541,54 +639,56 @@ void ConsoleFrame::drawRightPanel()
     float hpw = panelW_ * 0.5f;
     float hph = panelH_ * 0.5f;
 
-    // Panel housing
+    // Panel housing — seafoam green to match chassis
     drawRoundedRect(panelNode_,
                     cocos2d::Vec2(panelCX - hpw, -hph),
                     cocos2d::Vec2(panelCX + hpw, hph),
                     6.0f,
-                    cocos2d::Color4F(0.22f, 0.23f, 0.19f, 1.0f),
-                    cocos2d::Color4F(0.35f, 0.34f, 0.28f, 1.0f));
+                    cocos2d::Color4F(0.40f, 0.52f, 0.44f, 1.0f),
+                    cocos2d::Color4F(0.30f, 0.40f, 0.34f, 1.0f));
 
     // Inner recess
-    float inset = 4.0f;
+    float inset = 6.0f;
     panelNode_->drawSolidRect(
         cocos2d::Vec2(panelCX - hpw + inset, -hph + inset),
         cocos2d::Vec2(panelCX + hpw - inset, hph - inset),
-        cocos2d::Color4F(0.16f, 0.17f, 0.14f, 1.0f));
+        cocos2d::Color4F(0.14f, 0.16f, 0.13f, 1.0f));
 
-    float btnW = 20.0f;
-    float btnH = 14.0f;
-    float gap = 3.0f;
-    float pLeft = panelCX - hpw + inset + 4.0f;
-    float usableW = panelW_ - 2.0f * inset - 8.0f;
+    // Larger buttons with generous spacing
+    float btnW = 22.0f;
+    float btnH = 16.0f;
+    float gap = 6.0f;
+    float padding = 10.0f;
+    float pLeft = panelCX - hpw + inset + padding;
+    float usableW = panelW_ - 2.0f * inset - 2.0f * padding;
     int cols = std::max(1, (int)(usableW / (btnW + gap)));
     float startX = pLeft + (usableW - cols * (btnW + gap) + gap) * 0.5f;
 
-    cocos2d::Color4F btnFace(0.68f, 0.66f, 0.58f, 1.0f);
+    cocos2d::Color4F btnFace(0.62f, 0.60f, 0.52f, 1.0f);
     cocos2d::Color4F greenLit(0.10f, 0.40f, 0.10f, 0.5f);
     cocos2d::Color4F amberLit(0.50f, 0.35f, 0.05f, 0.5f);
 
     // Section label
     auto* settLabel = cocos2d::Label::createWithSystemFont("SETTINGS", "Courier", 6);
-    settLabel->setPosition(cocos2d::Vec2(panelCX, hph - 14));
-    settLabel->setTextColor(cocos2d::Color4B(160, 160, 140, 200));
+    settLabel->setPosition(cocos2d::Vec2(panelCX, hph - 16));
+    settLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 200));
     panelNode_->addChild(settLabel);
 
     // Upper button array: 6 rows
-    float rowTop = hph - 24.0f;
+    float rowTop = hph - 28.0f;
     for (int row = 0; row < 6; row++) {
-        float rowY = rowTop - row * (btnH + gap + 2.0f);
+        float rowY = rowTop - row * (btnH + gap + 3.0f);
         cocos2d::Color4F litColor = (row == 0) ? amberLit : greenLit;
         drawButtonRow(buttonNode_, startX, rowY, cols, btnW, btnH, gap,
                       btnFace, litColor);
     }
 
     // --- Rotary controls (knobs) ---
-    float knobSectionTop = rowTop - 6 * (btnH + gap + 2.0f) - 12.0f;
+    float knobSectionTop = rowTop - 6 * (btnH + gap + 3.0f) - 16.0f;
 
     auto* knobLabel = cocos2d::Label::createWithSystemFont("GAIN/VIDEO", "Courier", 5);
-    knobLabel->setPosition(cocos2d::Vec2(panelCX, knobSectionTop + 12));
-    knobLabel->setTextColor(cocos2d::Color4B(160, 160, 140, 180));
+    knobLabel->setPosition(cocos2d::Vec2(panelCX, knobSectionTop + 14));
+    knobLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 180));
     panelNode_->addChild(knobLabel);
 
     float knobR = 11.0f;
@@ -635,15 +735,15 @@ void ConsoleFrame::drawRightPanel()
     }
 
     // Lower button rows
-    float lowerTop = knob2Y - knobR - 16.0f;
+    float lowerTop = knob2Y - knobR - 20.0f;
 
     auto* rngLabel = cocos2d::Label::createWithSystemFont("RANGE/MTI", "Courier", 5);
-    rngLabel->setPosition(cocos2d::Vec2(panelCX, lowerTop + 10));
-    rngLabel->setTextColor(cocos2d::Color4B(160, 160, 140, 180));
+    rngLabel->setPosition(cocos2d::Vec2(panelCX, lowerTop + 12));
+    rngLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 180));
     panelNode_->addChild(rngLabel);
 
     for (int row = 0; row < 5; row++) {
-        float rowY = lowerTop - row * (btnH + gap + 2.0f);
+        float rowY = lowerTop - row * (btnH + gap + 3.0f);
         drawButtonRow(buttonNode_, startX, rowY, cols, btnW, btnH, gap,
                       btnFace, greenLit);
     }
@@ -670,12 +770,12 @@ void ConsoleFrame::drawBottomControls()
                     cocos2d::Vec2(fireCX - fireW * 0.5f, fireTop - fireH),
                     cocos2d::Vec2(fireCX + fireW * 0.5f, fireTop),
                     4.0f,
-                    cocos2d::Color4F(0.18f, 0.18f, 0.15f, 1.0f),
-                    cocos2d::Color4F(0.35f, 0.33f, 0.28f, 0.6f));
+                    cocos2d::Color4F(0.14f, 0.16f, 0.13f, 1.0f),
+                    cocos2d::Color4F(0.30f, 0.38f, 0.32f, 0.6f));
 
     float fbtnW = 28.0f;
     float fbtnH = 18.0f;
-    float fbtnGap = 4.0f;
+    float fbtnGap = 6.0f;
     float row1StartX = fireCX - (3 * (fbtnW + fbtnGap) - fbtnGap) * 0.5f + fbtnW * 0.5f;
 
     // Row 1: ENGAGE, CEASE FIRE, HOLD FIRE
@@ -794,7 +894,7 @@ void ConsoleFrame::drawTopIndicatorRow()
     housingNode_->drawSolidRect(
         cocos2d::Vec2(-stripHW, indicatorY),
         cocos2d::Vec2(stripHW, indicatorTop),
-        cocos2d::Color4F(0.20f, 0.20f, 0.17f, 1.0f));
+        cocos2d::Color4F(0.18f, 0.22f, 0.18f, 1.0f));
 
     struct Indicator { float x; float cr, cg, cb; const char* label; };
     Indicator indicators[] = {
@@ -832,16 +932,16 @@ void ConsoleFrame::drawManufacturerPlate()
 {
     float hh = bezelH_ * 0.5f;
 
-    // Small plate at very bottom of bezel
+    // Small plate at very bottom of bezel (brushed metal)
     float plateY = -hh + 4.0f;
     housingNode_->drawSolidRect(
         cocos2d::Vec2(-55, plateY),
         cocos2d::Vec2(55, plateY + 12),
-        cocos2d::Color4F(0.55f, 0.53f, 0.47f, 1.0f));
+        cocos2d::Color4F(0.48f, 0.55f, 0.48f, 1.0f));
     housingNode_->drawRect(
         cocos2d::Vec2(-55, plateY),
         cocos2d::Vec2(55, plateY + 12),
-        cocos2d::Color4F(0.45f, 0.43f, 0.38f, 1.0f));
+        cocos2d::Color4F(0.38f, 0.46f, 0.40f, 1.0f));
 
     auto* mfgLabel = cocos2d::Label::createWithSystemFont(
         "HUGHES AIRCRAFT CO", "Courier", 5);
