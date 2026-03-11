@@ -5,13 +5,13 @@
 
 #if USE_COCOS2DX
 // ============================================================================
-// Cocos2d-x ConsoleFrame — AN/TSQ-73 console housing + live data panels
+// Cocos2d-x ConsoleFrame — AN/TSQ-72 Analog Console
 // ============================================================================
 
-ConsoleFrame* ConsoleFrame::create(float scopeRadius, float panelWidth)
+ConsoleFrame* ConsoleFrame::create(float scopeRadius)
 {
     auto* ret = new (std::nothrow) ConsoleFrame();
-    if (ret && ret->init(scopeRadius, panelWidth)) {
+    if (ret && ret->init(scopeRadius)) {
         ret->autorelease();
         return ret;
     }
@@ -19,12 +19,11 @@ ConsoleFrame* ConsoleFrame::create(float scopeRadius, float panelWidth)
     return nullptr;
 }
 
-bool ConsoleFrame::init(float scopeRadius, float panelWidth)
+bool ConsoleFrame::init(float scopeRadius)
 {
     if (!Node::init()) return false;
 
     scopeRadius_ = scopeRadius;
-    panelWidth_ = panelWidth;
     trackManager_ = nullptr;
     fireControl_ = nullptr;
     threatBoard_ = nullptr;
@@ -33,22 +32,33 @@ bool ConsoleFrame::init(float scopeRadius, float panelWidth)
     level_ = 1;
     selectedTrackId_ = -1;
 
+    // AN/TSQ-72 bezel: portrait format, ~25% taller than wide
+    // The scope sits in the upper portion; buttons fill the sides and bottom
+    bezelW_ = scopeRadius * 2.0f + 240.0f;   // scope + side button panels
+    bezelH_ = bezelW_ * 1.25f;                // 25% taller than wide
+    cornerRadius_ = 12.0f;                     // ~2-3 inch radius at scale
+
     // Create draw layers
-    housingNode_   = cocos2d::DrawNode::create();
-    dataPanelNode_ = cocos2d::DrawNode::create();
-    dataLabelNode_ = cocos2d::Node::create();
+    housingNode_ = cocos2d::DrawNode::create();
+    buttonNode_  = cocos2d::DrawNode::create();
+    dynamicNode_ = cocos2d::DrawNode::create();
+    labelNode_   = cocos2d::Node::create();
 
-    // Housing behind everything, data panels on top
-    addChild(housingNode_,   0);
-    addChild(dataPanelNode_, 1);
-    addChild(dataLabelNode_, 2);
+    addChild(housingNode_,  0);
+    addChild(buttonNode_,   1);
+    addChild(dynamicNode_,  2);
+    addChild(labelNode_,    3);
 
-    // Draw static elements once
+    // Draw all static elements once
     drawShelterBackground();
-    drawConsoleHousing();
-    drawScopeBezel();
-    drawBottomControlStrip();
-    drawTopIndicators();
+    drawBezel();
+    drawScopeRing();
+    drawLeftButtonPanel();
+    drawRightButtonPanel();
+    drawBottomLeftFireButtons();
+    drawBottomRightJoystick();
+    drawTopIndicatorRow();
+    drawManufacturerPlate();
 
     scheduleUpdate();
     return true;
@@ -64,168 +74,259 @@ void ConsoleFrame::addMessage(const std::string& msg)
 
 void ConsoleFrame::update(float dt)
 {
-    dataPanelNode_->clear();
-    dataLabelNode_->removeAllChildren();
+    dynamicNode_->clear();
+    labelNode_->removeAllChildren();
 
-    drawLeftPanel();
-    drawRightPanel();
+    drawDynamicIndicators();
     drawBottomBar();
 }
 
 // ============================================================================
-// Static background: S-280 shelter interior
+// Rounded rectangle helper
+// ============================================================================
+
+void ConsoleFrame::drawRoundedRect(cocos2d::DrawNode* node,
+                                   const cocos2d::Vec2& origin,
+                                   const cocos2d::Vec2& dest,
+                                   float radius,
+                                   const cocos2d::Color4F& fill,
+                                   const cocos2d::Color4F& border)
+{
+    float left   = std::min(origin.x, dest.x);
+    float right  = std::max(origin.x, dest.x);
+    float bottom = std::min(origin.y, dest.y);
+    float top    = std::max(origin.y, dest.y);
+
+    float r = std::min(radius, std::min((right - left) * 0.5f, (top - bottom) * 0.5f));
+
+    // Build polygon with rounded corners
+    const int arcSteps = 6;
+    std::vector<cocos2d::Vec2> verts;
+
+    // Bottom-left corner
+    for (int i = 0; i <= arcSteps; i++) {
+        float angle = M_PI + (M_PI * 0.5f) * ((float)i / arcSteps);
+        verts.push_back(cocos2d::Vec2(left + r + r * cosf(angle),
+                                       bottom + r + r * sinf(angle)));
+    }
+    // Bottom-right corner
+    for (int i = 0; i <= arcSteps; i++) {
+        float angle = M_PI * 1.5f + (M_PI * 0.5f) * ((float)i / arcSteps);
+        verts.push_back(cocos2d::Vec2(right - r + r * cosf(angle),
+                                       bottom + r + r * sinf(angle)));
+    }
+    // Top-right corner
+    for (int i = 0; i <= arcSteps; i++) {
+        float angle = 0.0f + (M_PI * 0.5f) * ((float)i / arcSteps);
+        verts.push_back(cocos2d::Vec2(right - r + r * cosf(angle),
+                                       top - r + r * sinf(angle)));
+    }
+    // Top-left corner
+    for (int i = 0; i <= arcSteps; i++) {
+        float angle = M_PI * 0.5f + (M_PI * 0.5f) * ((float)i / arcSteps);
+        verts.push_back(cocos2d::Vec2(left + r + r * cosf(angle),
+                                       top - r + r * sinf(angle)));
+    }
+
+    node->drawPolygon(verts.data(), (int)verts.size(), fill, 1.0f, border);
+}
+
+// ============================================================================
+// Button drawing helpers
+// ============================================================================
+
+void ConsoleFrame::drawButtonRow(cocos2d::DrawNode* node,
+                                  float x, float y, int count,
+                                  float btnW, float btnH, float gap,
+                                  const cocos2d::Color4F& btnColor,
+                                  const cocos2d::Color4F& litColor,
+                                  bool vertical)
+{
+    for (int i = 0; i < count; i++) {
+        float bx, by;
+        if (vertical) {
+            bx = x;
+            by = y - i * (btnH + gap);
+        } else {
+            bx = x + i * (btnW + gap);
+            by = y;
+        }
+
+        // Button housing (recessed)
+        node->drawSolidRect(
+            cocos2d::Vec2(bx - 1, by - 1),
+            cocos2d::Vec2(bx + btnW + 1, by + btnH + 1),
+            cocos2d::Color4F(0.08f, 0.08f, 0.06f, 1.0f));
+
+        // Button face
+        node->drawSolidRect(
+            cocos2d::Vec2(bx, by),
+            cocos2d::Vec2(bx + btnW, by + btnH),
+            btnColor);
+
+        // Lit indicator on button (small illuminated window)
+        float indW = btnW * 0.6f;
+        float indH = btnH * 0.3f;
+        float indX = bx + (btnW - indW) * 0.5f;
+        float indY = by + btnH * 0.55f;
+        node->drawSolidRect(
+            cocos2d::Vec2(indX, indY),
+            cocos2d::Vec2(indX + indW, indY + indH),
+            litColor);
+
+        // Top bevel highlight
+        node->drawLine(
+            cocos2d::Vec2(bx + 1, by + btnH),
+            cocos2d::Vec2(bx + btnW - 1, by + btnH),
+            cocos2d::Color4F(btnColor.r + 0.08f, btnColor.g + 0.08f,
+                             btnColor.b + 0.06f, 1.0f));
+    }
+}
+
+void ConsoleFrame::drawLabeledButton(cocos2d::DrawNode* node,
+                                      float cx, float cy,
+                                      float w, float h,
+                                      const cocos2d::Color4F& color,
+                                      const char* label,
+                                      float fontSize)
+{
+    float x0 = cx - w * 0.5f;
+    float y0 = cy - h * 0.5f;
+
+    // Recessed housing
+    node->drawSolidRect(
+        cocos2d::Vec2(x0 - 1, y0 - 1),
+        cocos2d::Vec2(x0 + w + 1, y0 + h + 1),
+        cocos2d::Color4F(0.06f, 0.06f, 0.05f, 1.0f));
+
+    // Button face
+    node->drawSolidRect(
+        cocos2d::Vec2(x0, y0),
+        cocos2d::Vec2(x0 + w, y0 + h),
+        color);
+
+    // Label
+    if (label && label[0]) {
+        auto* lbl = cocos2d::Label::createWithSystemFont(label, "Courier", fontSize);
+        lbl->setPosition(cocos2d::Vec2(cx, cy));
+        lbl->setTextColor(cocos2d::Color4B(20, 20, 18, 220));
+        node->addChild(lbl);
+    }
+}
+
+// ============================================================================
+// S-280 shelter background
 // ============================================================================
 
 void ConsoleFrame::drawShelterBackground()
 {
-    // Dark shelter interior behind the console
     housingNode_->drawSolidRect(
         cocos2d::Vec2(-800, -600),
         cocos2d::Vec2(800, 600),
         cocos2d::Color4F(0.06f, 0.07f, 0.05f, 1.0f));
 
-    // Ceiling (slightly lighter)
+    // Ceiling
     housingNode_->drawSolidRect(
-        cocos2d::Vec2(-800, 350),
+        cocos2d::Vec2(-800, 400),
         cocos2d::Vec2(800, 600),
         cocos2d::Color4F(0.08f, 0.09f, 0.07f, 1.0f));
 
-    // Red night ops light strips on ceiling
-    for (int lx = -500; lx <= 500; lx += 250) {
+    // Red night ops light strips
+    for (int lx = -400; lx <= 400; lx += 200) {
         housingNode_->drawSolidRect(
-            cocos2d::Vec2((float)lx - 25.0f, 520.0f),
-            cocos2d::Vec2((float)lx + 25.0f, 525.0f),
+            cocos2d::Vec2((float)lx - 20.0f, 520.0f),
+            cocos2d::Vec2((float)lx + 20.0f, 524.0f),
             cocos2d::Color4F(0.25f, 0.06f, 0.06f, 0.5f));
-        // Glow below strip
         housingNode_->drawSolidRect(
-            cocos2d::Vec2((float)lx - 40.0f, 500.0f),
-            cocos2d::Vec2((float)lx + 40.0f, 520.0f),
+            cocos2d::Vec2((float)lx - 35.0f, 500.0f),
+            cocos2d::Vec2((float)lx + 35.0f, 520.0f),
             cocos2d::Color4F(0.15f, 0.04f, 0.04f, 0.2f));
     }
 
-    // Floor (darker)
+    // Floor
     housingNode_->drawSolidRect(
         cocos2d::Vec2(-800, -600),
-        cocos2d::Vec2(800, -400),
+        cocos2d::Vec2(800, -450),
         cocos2d::Color4F(0.04f, 0.05f, 0.03f, 1.0f));
 }
 
 // ============================================================================
-// Console housing — metal cabinet around the scope
+// Main bezel — portrait rectangle with rounded corners
 // ============================================================================
 
-void ConsoleFrame::drawConsoleHousing()
+void ConsoleFrame::drawBezel()
 {
-    float r = scopeRadius_;
-    float pw = panelWidth_;
+    float hw = bezelW_ * 0.5f;
+    float hh = bezelH_ * 0.5f;
 
-    float left   = -r - pw - 30.0f;
-    float right  =  r + pw + 30.0f;
-    float top    =  r + 45.0f;
-    float bottom = -r - 85.0f;
+    // Outer bezel frame (cream/tan metal — matches the photo)
+    cocos2d::Color4F bezelColor(0.72f, 0.70f, 0.62f, 1.0f);
+    cocos2d::Color4F bezelBorder(0.55f, 0.53f, 0.47f, 1.0f);
 
-    cocos2d::Color4F housing(0.17f, 0.19f, 0.15f, 1.0f);
+    drawRoundedRect(housingNode_,
+                    cocos2d::Vec2(-hw, -hh),
+                    cocos2d::Vec2(hw, hh),
+                    cornerRadius_,
+                    bezelColor, bezelBorder);
 
-    // Top strip
-    housingNode_->drawSolidRect(
-        cocos2d::Vec2(left, r), cocos2d::Vec2(right, top), housing);
+    // Inner recessed area (darker, where scope + buttons sit)
+    float inset = 8.0f;
+    cocos2d::Color4F recessColor(0.58f, 0.56f, 0.50f, 1.0f);
+    cocos2d::Color4F recessBorder(0.45f, 0.43f, 0.38f, 1.0f);
 
-    // Bottom strip
-    housingNode_->drawSolidRect(
-        cocos2d::Vec2(left, bottom), cocos2d::Vec2(right, -r), housing);
+    drawRoundedRect(housingNode_,
+                    cocos2d::Vec2(-hw + inset, -hh + inset),
+                    cocos2d::Vec2(hw - inset, hh - inset),
+                    cornerRadius_ - 2.0f,
+                    recessColor, recessBorder);
 
-    // Left strip
-    housingNode_->drawSolidRect(
-        cocos2d::Vec2(left, -r), cocos2d::Vec2(-r, r), housing);
-
-    // Right strip
-    housingNode_->drawSolidRect(
-        cocos2d::Vec2(r, -r), cocos2d::Vec2(right, r), housing);
-
-    // Corner wedges (fill gap between square strips and circular scope)
-    drawCornerWedges(r);
-
-    // Bevel highlight on top edge
+    // Shadow/bevel lines for depth
+    // Top highlight
     housingNode_->drawLine(
-        cocos2d::Vec2(left + 6, top),
-        cocos2d::Vec2(right - 6, top),
-        cocos2d::Color4F(0.27f, 0.29f, 0.24f, 1.0f));
-
-    // Shadow on bottom edge
+        cocos2d::Vec2(-hw + cornerRadius_, hh - 1),
+        cocos2d::Vec2(hw - cornerRadius_, hh - 1),
+        cocos2d::Color4F(0.80f, 0.78f, 0.70f, 0.6f));
+    // Bottom shadow
     housingNode_->drawLine(
-        cocos2d::Vec2(left + 6, bottom),
-        cocos2d::Vec2(right - 6, bottom),
-        cocos2d::Color4F(0.10f, 0.11f, 0.08f, 1.0f));
-
-    // Console outline
-    housingNode_->drawRect(
-        cocos2d::Vec2(left, bottom),
-        cocos2d::Vec2(right, top),
-        cocos2d::Color4F(0.24f, 0.26f, 0.20f, 1.0f));
-}
-
-void ConsoleFrame::drawCornerWedges(float r)
-{
-    cocos2d::Color4F housing(0.17f, 0.19f, 0.15f, 1.0f);
-    int steps = 12;
-
-    // Four corners: top-left, top-right, bottom-right, bottom-left
-    struct Corner { float cx, cy; float startDeg, endDeg; };
-    Corner corners[] = {
-        { -r,  r,  90.0f, 180.0f },
-        {  r,  r,   0.0f,  90.0f },
-        {  r, -r, 270.0f, 360.0f },
-        { -r, -r, 180.0f, 270.0f }
-    };
-
-    for (const auto& corner : corners) {
-        cocos2d::Vec2 prev(corner.cx, corner.cy);
-        for (int i = 0; i <= steps; i++) {
-            float angle = (corner.startDeg +
-                (corner.endDeg - corner.startDeg) * (float)i / steps) * M_PI / 180.0f;
-            cocos2d::Vec2 arcPt(r * std::cos(angle), r * std::sin(angle));
-
-            if (i > 0) {
-                cocos2d::Vec2 verts[] = {
-                    cocos2d::Vec2(corner.cx, corner.cy), prev, arcPt
-                };
-                housingNode_->drawPolygon(verts, 3, housing, 0, housing);
-            }
-            prev = arcPt;
-        }
-    }
+        cocos2d::Vec2(-hw + cornerRadius_, -hh + 1),
+        cocos2d::Vec2(hw - cornerRadius_, -hh + 1),
+        cocos2d::Color4F(0.40f, 0.38f, 0.33f, 0.8f));
 }
 
 // ============================================================================
-// Scope bezel — rubber hood and metal ring around the PPI scope
+// Scope ring — rubber hood and metal bezel around PPI
 // ============================================================================
 
-void ConsoleFrame::drawScopeBezel()
+void ConsoleFrame::drawScopeRing()
 {
     float r = scopeRadius_;
 
-    // Outer rubber hood ring
-    housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 9.0f, 0, 72, false,
-        cocos2d::Color4F(0.08f, 0.08f, 0.08f, 1.0f));
+    // Scope sits in upper half of bezel
+    float scopeCenterY = bezelH_ * 0.15f;
 
-    // Inner hood bevel
-    housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 3.0f, 0, 72, false,
-        cocos2d::Color4F(0.12f, 0.12f, 0.12f, 1.0f));
+    // Dark scope well (black circle behind the PPI)
+    housingNode_->drawSolidCircle(
+        cocos2d::Vec2(0, scopeCenterY), r + 6.0f, 0, 72,
+        cocos2d::Color4F(0.03f, 0.03f, 0.02f, 1.0f));
 
-    // Outer metal bezel
+    // Rubber hood ring (dark gray)
     housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 18.0f, 0, 72, false,
-        cocos2d::Color4F(0.31f, 0.33f, 0.28f, 1.0f));
+        cocos2d::Vec2(0, scopeCenterY), r + 8.0f, 0, 72, false,
+        cocos2d::Color4F(0.12f, 0.12f, 0.10f, 1.0f));
+    housingNode_->drawCircle(
+        cocos2d::Vec2(0, scopeCenterY), r + 5.0f, 0, 72, false,
+        cocos2d::Color4F(0.10f, 0.10f, 0.08f, 1.0f));
 
-    // Inner bezel edge
+    // Inner metal bezel ring
     housingNode_->drawCircle(
-        cocos2d::Vec2::ZERO, r + 1.0f, 0, 72, false,
-        cocos2d::Color4F(0.20f, 0.22f, 0.18f, 1.0f));
+        cocos2d::Vec2(0, scopeCenterY), r + 2.0f, 0, 72, false,
+        cocos2d::Color4F(0.45f, 0.43f, 0.38f, 1.0f));
+    housingNode_->drawCircle(
+        cocos2d::Vec2(0, scopeCenterY), r + 1.0f, 0, 72, false,
+        cocos2d::Color4F(0.35f, 0.33f, 0.28f, 1.0f));
 
     // Mounting screws at 45-degree positions
-    float screwDist = r + 15.0f;
+    float screwDist = r + 12.0f;
     float positions[][2] = {
         { -0.707f,  0.707f },
         {  0.707f,  0.707f },
@@ -233,481 +334,522 @@ void ConsoleFrame::drawScopeBezel()
         { -0.707f, -0.707f }
     };
     for (const auto& pos : positions) {
-        cocos2d::Vec2 screwPos(screwDist * pos[0], screwDist * pos[1]);
-        housingNode_->drawSolidCircle(screwPos, 4.0f, 0, 8,
-            cocos2d::Color4F(0.35f, 0.37f, 0.32f, 1.0f));
-        housingNode_->drawCircle(screwPos, 4.0f, 0, 8, false,
-            cocos2d::Color4F(0.20f, 0.22f, 0.18f, 1.0f));
-        // Phillips slot
+        cocos2d::Vec2 screwPos(screwDist * pos[0], scopeCenterY + screwDist * pos[1]);
+        housingNode_->drawSolidCircle(screwPos, 3.5f, 0, 8,
+            cocos2d::Color4F(0.50f, 0.48f, 0.42f, 1.0f));
+        housingNode_->drawCircle(screwPos, 3.5f, 0, 8, false,
+            cocos2d::Color4F(0.38f, 0.36f, 0.30f, 1.0f));
+        // Phillips cross
         housingNode_->drawLine(
-            screwPos + cocos2d::Vec2(-2, 0), screwPos + cocos2d::Vec2(2, 0),
-            cocos2d::Color4F(0.24f, 0.26f, 0.20f, 1.0f));
+            screwPos + cocos2d::Vec2(-1.5f, 0), screwPos + cocos2d::Vec2(1.5f, 0),
+            cocos2d::Color4F(0.40f, 0.38f, 0.33f, 1.0f));
         housingNode_->drawLine(
-            screwPos + cocos2d::Vec2(0, -2), screwPos + cocos2d::Vec2(0, 2),
-            cocos2d::Color4F(0.24f, 0.26f, 0.20f, 1.0f));
+            screwPos + cocos2d::Vec2(0, -1.5f), screwPos + cocos2d::Vec2(0, 1.5f),
+            cocos2d::Color4F(0.40f, 0.38f, 0.33f, 1.0f));
     }
 }
 
 // ============================================================================
-// Bottom control strip: rotary knobs and toggle switches
+// Left button panel — illuminated button arrays + numeric keypad
+// (Track management, IFF interrogation, display controls)
 // ============================================================================
 
-void ConsoleFrame::drawBottomControlStrip()
+void ConsoleFrame::drawLeftButtonPanel()
 {
+    float hw = bezelW_ * 0.5f;
+    float scopeCenterY = bezelH_ * 0.15f;
     float r = scopeRadius_;
-    float pw = panelWidth_;
 
-    float stripLeft  = -r - pw - 20.0f;
-    float stripRight =  r + pw + 20.0f;
-    float stripBot   = -r - 75.0f;
-    float stripTop   = -r - 25.0f;
+    // Panel area: left side of bezel, beside and below the scope
+    float panelLeft = -hw + 14.0f;
+    float panelRight = -r - 16.0f;
+    float panelW = panelRight - panelLeft;
 
-    // Strip background
-    housingNode_->drawSolidRect(
-        cocos2d::Vec2(stripLeft, stripBot),
-        cocos2d::Vec2(stripRight, stripTop),
-        cocos2d::Color4F(0.16f, 0.17f, 0.14f, 1.0f));
+    // --- Upper button array (beside scope) ---
+    // These are the illuminated pushbuttons visible in the photo
+    float upperTop = scopeCenterY + r * 0.7f;
+    float btnW = 20.0f;
+    float btnH = 14.0f;
+    float gap = 3.0f;
 
-    housingNode_->drawRect(
-        cocos2d::Vec2(stripLeft, stripBot),
-        cocos2d::Vec2(stripRight, stripTop),
-        cocos2d::Color4F(0.22f, 0.24f, 0.19f, 1.0f));
+    // Calculate how many columns fit
+    int cols = std::max(1, (int)((panelW - 4.0f) / (btnW + gap)));
+    float startX = panelLeft + (panelW - cols * (btnW + gap) + gap) * 0.5f;
 
-    float knobY = (stripBot + stripTop) * 0.5f;
-    float knobPositions[] = { -200.0f, -80.0f, 0.0f, 80.0f, 200.0f };
+    // 5 rows of illuminated buttons (track/display controls)
+    cocos2d::Color4F btnFace(0.68f, 0.66f, 0.58f, 1.0f);
+    cocos2d::Color4F dimLit(0.15f, 0.30f, 0.10f, 0.4f);
+    cocos2d::Color4F amberLit(0.50f, 0.35f, 0.05f, 0.5f);
 
-    for (float kx : knobPositions) {
-        cocos2d::Vec2 center(kx, knobY);
-        // Knob base
-        housingNode_->drawSolidCircle(center, 14.0f, 0, 12,
-            cocos2d::Color4F(0.12f, 0.13f, 0.11f, 1.0f));
+    for (int row = 0; row < 5; row++) {
+        float rowY = upperTop - row * (btnH + gap + 2.0f);
+        cocos2d::Color4F litColor = (row < 2) ? amberLit : dimLit;
+        drawButtonRow(buttonNode_, startX, rowY, cols, btnW, btnH, gap,
+                      btnFace, litColor);
+    }
+
+    // --- Numeric keypad (below the button arrays) ---
+    float keypadTop = upperTop - 5 * (btnH + gap + 2.0f) - 12.0f;
+    float keyW = 18.0f;
+    float keyH = 16.0f;
+    float keyGap = 3.0f;
+
+    // Keypad background
+    float kpLeft = panelLeft + 4.0f;
+    float kpRight = kpLeft + 3 * (keyW + keyGap) + keyGap;
+    buttonNode_->drawSolidRect(
+        cocos2d::Vec2(kpLeft - 4, keypadTop - 4 * (keyH + keyGap) - 8),
+        cocos2d::Vec2(kpRight + 4, keypadTop + 4),
+        cocos2d::Color4F(0.14f, 0.14f, 0.12f, 1.0f));
+
+    const char* keyLabels[] = {
+        "7", "8", "9",
+        "4", "5", "6",
+        "1", "2", "3",
+        "CLR", "0", "ENT"
+    };
+    cocos2d::Color4F keyColor(0.62f, 0.60f, 0.54f, 1.0f);
+    cocos2d::Color4F entColor(0.45f, 0.55f, 0.40f, 1.0f);
+    cocos2d::Color4F clrColor(0.55f, 0.40f, 0.35f, 1.0f);
+
+    for (int row = 0; row < 4; row++) {
+        for (int col = 0; col < 3; col++) {
+            int idx = row * 3 + col;
+            float kx = kpLeft + col * (keyW + keyGap) + keyW * 0.5f + keyGap;
+            float ky = keypadTop - row * (keyH + keyGap) - keyH * 0.5f;
+
+            cocos2d::Color4F kc = keyColor;
+            if (idx == 9) kc = clrColor;   // CLR
+            if (idx == 11) kc = entColor;   // ENT
+
+            drawLabeledButton(buttonNode_, kx, ky, keyW, keyH, kc, keyLabels[idx], 6.0f);
+        }
+    }
+
+    // --- Lower function buttons (below keypad) ---
+    float funcTop = keypadTop - 4 * (keyH + keyGap) - 20.0f;
+    int funcRows = 3;
+    int funcCols = cols;
+    cocos2d::Color4F funcFace(0.65f, 0.63f, 0.56f, 1.0f);
+    cocos2d::Color4F funcLit(0.10f, 0.35f, 0.10f, 0.5f);
+
+    for (int row = 0; row < funcRows; row++) {
+        float rowY = funcTop - row * (btnH + gap + 2.0f);
+        drawButtonRow(buttonNode_, startX, rowY, funcCols, btnW, btnH, gap,
+                      funcFace, funcLit);
+    }
+}
+
+// ============================================================================
+// Right button panel — console settings button arrays
+// (Brightness, gain, MTI, video, range controls)
+// ============================================================================
+
+void ConsoleFrame::drawRightButtonPanel()
+{
+    float hw = bezelW_ * 0.5f;
+    float scopeCenterY = bezelH_ * 0.15f;
+    float r = scopeRadius_;
+
+    float panelLeft = r + 16.0f;
+    float panelRight = hw - 14.0f;
+    float panelW = panelRight - panelLeft;
+
+    float upperTop = scopeCenterY + r * 0.7f;
+    float btnW = 20.0f;
+    float btnH = 14.0f;
+    float gap = 3.0f;
+
+    int cols = std::max(1, (int)((panelW - 4.0f) / (btnW + gap)));
+    float startX = panelLeft + (panelW - cols * (btnW + gap) + gap) * 0.5f;
+
+    // Upper button array — 5 rows (console settings)
+    cocos2d::Color4F btnFace(0.68f, 0.66f, 0.58f, 1.0f);
+    cocos2d::Color4F greenLit(0.10f, 0.40f, 0.10f, 0.5f);
+    cocos2d::Color4F amberLit(0.50f, 0.35f, 0.05f, 0.5f);
+
+    for (int row = 0; row < 5; row++) {
+        float rowY = upperTop - row * (btnH + gap + 2.0f);
+        cocos2d::Color4F litColor = (row == 0) ? amberLit : greenLit;
+        drawButtonRow(buttonNode_, startX, rowY, cols, btnW, btnH, gap,
+                      btnFace, litColor);
+    }
+
+    // Middle section: rotary controls (drawn as knobs with settings)
+    float knobSectionTop = upperTop - 5 * (btnH + gap + 2.0f) - 15.0f;
+    float knobR = 12.0f;
+    float knobGap = 36.0f;
+    int numKnobs = std::max(1, (int)(panelW / knobGap));
+    float knobStartX = panelLeft + (panelW - (numKnobs - 1) * knobGap) * 0.5f;
+
+    for (int i = 0; i < numKnobs; i++) {
+        cocos2d::Vec2 kc(knobStartX + i * knobGap, knobSectionTop);
+
+        // Knob base recess
+        buttonNode_->drawSolidCircle(kc, knobR + 2, 0, 16,
+            cocos2d::Color4F(0.14f, 0.14f, 0.12f, 1.0f));
+        // Knob body
+        buttonNode_->drawSolidCircle(kc, knobR, 0, 16,
+            cocos2d::Color4F(0.22f, 0.22f, 0.19f, 1.0f));
         // Knob cap
-        housingNode_->drawSolidCircle(center, 10.0f, 0, 12,
-            cocos2d::Color4F(0.22f, 0.24f, 0.19f, 1.0f));
+        buttonNode_->drawSolidCircle(kc, knobR - 3, 0, 12,
+            cocos2d::Color4F(0.30f, 0.30f, 0.26f, 1.0f));
         // Indicator line
-        housingNode_->drawLine(
-            center, center + cocos2d::Vec2(0, 8),
-            cocos2d::Color4F(0.7f, 0.7f, 0.67f, 1.0f));
+        float angle = 0.4f + i * 0.7f;  // varied positions
+        buttonNode_->drawLine(
+            kc, kc + cocos2d::Vec2(sinf(angle) * (knobR - 2),
+                                    cosf(angle) * (knobR - 2)),
+            cocos2d::Color4F(0.7f, 0.7f, 0.66f, 1.0f));
         // Ring
-        housingNode_->drawCircle(center, 14.0f, 0, 12, false,
-            cocos2d::Color4F(0.31f, 0.33f, 0.28f, 1.0f));
+        buttonNode_->drawCircle(kc, knobR, 0, 16, false,
+            cocos2d::Color4F(0.38f, 0.38f, 0.33f, 1.0f));
     }
 
-    // Toggle switches between knobs
-    float switchPositions[] = { -140.0f, -40.0f, 40.0f, 140.0f };
-    for (float sx : switchPositions) {
-        // Housing
-        housingNode_->drawSolidRect(
-            cocos2d::Vec2(sx - 6, knobY - 10),
-            cocos2d::Vec2(sx + 6, knobY + 10),
-            cocos2d::Color4F(0.12f, 0.13f, 0.11f, 1.0f));
-        // Toggle (up position)
-        housingNode_->drawSolidRect(
-            cocos2d::Vec2(sx - 3, knobY - 2),
-            cocos2d::Vec2(sx + 3, knobY + 10),
-            cocos2d::Color4F(0.63f, 0.63f, 0.59f, 1.0f));
+    // Lower button rows (more settings)
+    float lowerTop = knobSectionTop - knobR - 20.0f;
+    for (int row = 0; row < 6; row++) {
+        float rowY = lowerTop - row * (btnH + gap + 2.0f);
+        drawButtonRow(buttonNode_, startX, rowY, cols, btnW, btnH, gap,
+                      btnFace, greenLit);
     }
 }
 
 // ============================================================================
-// Top indicator LEDs
+// Bottom-left fire command buttons
 // ============================================================================
 
-void ConsoleFrame::drawTopIndicators()
+void ConsoleFrame::drawBottomLeftFireButtons()
 {
+    float hw = bezelW_ * 0.5f;
+    float hh = bezelH_ * 0.5f;
+    float scopeCenterY = bezelH_ * 0.15f;
     float r = scopeRadius_;
-    float indicatorY = r + 30.0f;
+
+    // Fire buttons below and to the left of the scope
+    float fireTop = scopeCenterY - r - 20.0f;
+    float fireLeft = -hw + 14.0f;
+    float fireRight = -20.0f;
+    float fireW = fireRight - fireLeft;
+
+    // Dark recessed panel background
+    buttonNode_->drawSolidRect(
+        cocos2d::Vec2(fireLeft - 2, -hh + 14.0f),
+        cocos2d::Vec2(fireRight + 2, fireTop + 4),
+        cocos2d::Color4F(0.18f, 0.18f, 0.15f, 1.0f));
+    buttonNode_->drawRect(
+        cocos2d::Vec2(fireLeft - 2, -hh + 14.0f),
+        cocos2d::Vec2(fireRight + 2, fireTop + 4),
+        cocos2d::Color4F(0.40f, 0.38f, 0.33f, 0.6f));
+
+    // Fire command buttons — larger, prominent
+    float fbtnW = 28.0f;
+    float fbtnH = 18.0f;
+    float fbtnGap = 4.0f;
+
+    // Top row: ENGAGE, CEASE FIRE, HOLD FIRE
+    const char* fireLabels1[] = { "ENG", "C/F", "HLD" };
+    cocos2d::Color4F fireColors1[] = {
+        cocos2d::Color4F(0.55f, 0.20f, 0.15f, 1.0f),  // red-ish
+        cocos2d::Color4F(0.55f, 0.50f, 0.15f, 1.0f),  // amber
+        cocos2d::Color4F(0.20f, 0.50f, 0.20f, 1.0f),  // green
+    };
+
+    float row1Y = fireTop - 10.0f;
+    float row1StartX = fireLeft + (fireW - 3 * (fbtnW + fbtnGap) + fbtnGap) * 0.5f + fbtnW * 0.5f;
+
+    for (int i = 0; i < 3; i++) {
+        float bx = row1StartX + i * (fbtnW + fbtnGap);
+        drawLabeledButton(buttonNode_, bx, row1Y, fbtnW, fbtnH,
+                          fireColors1[i], fireLabels1[i], 6.0f);
+    }
+
+    // Second row: ARM, SAFE, IFF
+    const char* fireLabels2[] = { "ARM", "SAFE", "IFF" };
+    cocos2d::Color4F fireColors2[] = {
+        cocos2d::Color4F(0.55f, 0.20f, 0.15f, 1.0f),
+        cocos2d::Color4F(0.20f, 0.50f, 0.20f, 1.0f),
+        cocos2d::Color4F(0.40f, 0.45f, 0.55f, 1.0f),
+    };
+
+    float row2Y = row1Y - fbtnH - fbtnGap - 4.0f;
+    for (int i = 0; i < 3; i++) {
+        float bx = row1StartX + i * (fbtnW + fbtnGap);
+        drawLabeledButton(buttonNode_, bx, row2Y, fbtnW, fbtnH,
+                          fireColors2[i], fireLabels2[i], 6.0f);
+    }
+
+    // Third row: TRK SEL, TRK DROP, ALERT
+    const char* fireLabels3[] = { "SEL", "DRP", "ALT" };
+    cocos2d::Color4F fireColor3(0.60f, 0.58f, 0.50f, 1.0f);
+
+    float row3Y = row2Y - fbtnH - fbtnGap - 4.0f;
+    for (int i = 0; i < 3; i++) {
+        float bx = row1StartX + i * (fbtnW + fbtnGap);
+        drawLabeledButton(buttonNode_, bx, row3Y, fbtnW, fbtnH,
+                          fireColor3, fireLabels3[i], 6.0f);
+    }
+
+    // Fourth row: More function buttons
+    const char* fireLabels4[] = { "RNG", "AZM", "ALT" };
+    float row4Y = row3Y - fbtnH - fbtnGap - 4.0f;
+    for (int i = 0; i < 3; i++) {
+        float bx = row1StartX + i * (fbtnW + fbtnGap);
+        drawLabeledButton(buttonNode_, bx, row4Y, fbtnW, fbtnH,
+                          fireColor3, fireLabels4[i], 6.0f);
+    }
+
+    // Additional small button array below
+    float smallTop = row4Y - fbtnH * 0.5f - 12.0f;
+    float smallBtnW = 16.0f;
+    float smallBtnH = 12.0f;
+    int smallCols = std::max(1, (int)((fireW - 8) / (smallBtnW + 3)));
+    float smallStartX = fireLeft + (fireW - smallCols * (smallBtnW + 3) + 3) * 0.5f;
+
+    for (int row = 0; row < 3; row++) {
+        float rowY = smallTop - row * (smallBtnH + 3.0f);
+        drawButtonRow(buttonNode_, smallStartX, rowY, smallCols,
+                      smallBtnW, smallBtnH, 3.0f,
+                      cocos2d::Color4F(0.62f, 0.60f, 0.52f, 1.0f),
+                      cocos2d::Color4F(0.40f, 0.25f, 0.08f, 0.4f));
+    }
+}
+
+// ============================================================================
+// Bottom-right joystick
+// ============================================================================
+
+void ConsoleFrame::drawBottomRightJoystick()
+{
+    float hw = bezelW_ * 0.5f;
+    float hh = bezelH_ * 0.5f;
+
+    // Joystick position: bottom-right of bezel
+    float joyX = hw * 0.5f;
+    float joyY = -hh + 55.0f;
+
+    // Base plate
+    buttonNode_->drawSolidCircle(
+        cocos2d::Vec2(joyX, joyY), 22.0f, 0, 24,
+        cocos2d::Color4F(0.16f, 0.16f, 0.14f, 1.0f));
+    buttonNode_->drawCircle(
+        cocos2d::Vec2(joyX, joyY), 22.0f, 0, 24, false,
+        cocos2d::Color4F(0.38f, 0.36f, 0.30f, 1.0f));
+
+    // Boot (rubber ring)
+    buttonNode_->drawSolidCircle(
+        cocos2d::Vec2(joyX, joyY), 15.0f, 0, 20,
+        cocos2d::Color4F(0.10f, 0.10f, 0.08f, 1.0f));
+
+    // Stick shaft
+    buttonNode_->drawSolidCircle(
+        cocos2d::Vec2(joyX, joyY), 6.0f, 0, 12,
+        cocos2d::Color4F(0.25f, 0.25f, 0.22f, 1.0f));
+
+    // Stick top (knob)
+    buttonNode_->drawSolidCircle(
+        cocos2d::Vec2(joyX, joyY + 2), 5.0f, 0, 12,
+        cocos2d::Color4F(0.35f, 0.35f, 0.30f, 1.0f));
+    buttonNode_->drawCircle(
+        cocos2d::Vec2(joyX, joyY + 2), 5.0f, 0, 12, false,
+        cocos2d::Color4F(0.45f, 0.43f, 0.38f, 1.0f));
+
+    // Directional marks
+    float markDist = 18.0f;
+    cocos2d::Color4F markColor(0.45f, 0.43f, 0.38f, 0.6f);
+    buttonNode_->drawLine(
+        cocos2d::Vec2(joyX, joyY + markDist - 2),
+        cocos2d::Vec2(joyX, joyY + markDist + 2), markColor);
+    buttonNode_->drawLine(
+        cocos2d::Vec2(joyX, joyY - markDist - 2),
+        cocos2d::Vec2(joyX, joyY - markDist + 2), markColor);
+    buttonNode_->drawLine(
+        cocos2d::Vec2(joyX + markDist - 2, joyY),
+        cocos2d::Vec2(joyX + markDist + 2, joyY), markColor);
+    buttonNode_->drawLine(
+        cocos2d::Vec2(joyX - markDist - 2, joyY),
+        cocos2d::Vec2(joyX - markDist + 2, joyY), markColor);
+
+    // Label
+    auto* joyLabel = cocos2d::Label::createWithSystemFont("CURSOR", "Courier", 6);
+    joyLabel->setPosition(cocos2d::Vec2(joyX, joyY - 28));
+    joyLabel->setTextColor(cocos2d::Color4B(130, 130, 115, 180));
+    buttonNode_->addChild(joyLabel);
+
+    // Some small buttons next to joystick (thumb buttons)
+    float tbX = joyX + 35.0f;
+    cocos2d::Color4F tbColor(0.55f, 0.53f, 0.46f, 1.0f);
+    drawLabeledButton(buttonNode_, tbX, joyY + 10, 16, 12, tbColor, "ACQ", 5.0f);
+    drawLabeledButton(buttonNode_, tbX, joyY - 10, 16, 12, tbColor, "TGT", 5.0f);
+}
+
+// ============================================================================
+// Top indicator row — status LEDs above the scope
+// ============================================================================
+
+void ConsoleFrame::drawTopIndicatorRow()
+{
+    float hh = bezelH_ * 0.5f;
+    float scopeCenterY = bezelH_ * 0.15f;
+    float r = scopeRadius_;
+
+    float indicatorY = scopeCenterY + r + 12.0f;
+    float indicatorTop = hh - 10.0f;
+
+    // Background strip for indicators
+    float stripLeft = -bezelW_ * 0.35f;
+    float stripRight = bezelW_ * 0.35f;
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(stripLeft, indicatorY),
+        cocos2d::Vec2(stripRight, indicatorTop),
+        cocos2d::Color4F(0.20f, 0.20f, 0.17f, 1.0f));
 
     struct Indicator { float x; float cr, cg, cb; const char* label; };
     Indicator indicators[] = {
-        { -100.0f, 0.0f, 0.8f, 0.0f, "PWR" },
-        {  -50.0f, 0.8f, 0.8f, 0.0f, "RDR" },
-        {    0.0f, 0.0f, 0.8f, 0.0f, "IFF" },
-        {   50.0f, 0.8f, 0.0f, 0.0f, "WPN" },
-        {  100.0f, 0.0f, 0.8f, 0.0f, "COM" }
+        { -120.0f, 0.0f, 0.7f, 0.0f, "PWR" },
+        {  -60.0f, 0.7f, 0.7f, 0.0f, "RDR" },
+        {    0.0f, 0.0f, 0.7f, 0.0f, "IFF" },
+        {   60.0f, 0.7f, 0.0f, 0.0f, "WPN" },
+        {  120.0f, 0.0f, 0.7f, 0.0f, "COM" }
     };
 
+    float midY = (indicatorY + indicatorTop) * 0.5f;
+
     for (const auto& ind : indicators) {
-        cocos2d::Vec2 pos(ind.x, indicatorY);
+        cocos2d::Vec2 pos(ind.x, midY);
+
+        // LED housing
+        housingNode_->drawSolidCircle(pos, 5.0f, 0, 10,
+            cocos2d::Color4F(0.10f, 0.10f, 0.08f, 1.0f));
 
         // LED
-        housingNode_->drawSolidCircle(pos, 4.0f, 0, 8,
+        housingNode_->drawSolidCircle(pos, 3.5f, 0, 10,
             cocos2d::Color4F(ind.cr, ind.cg, ind.cb, 0.85f));
 
         // Glow
-        housingNode_->drawSolidCircle(pos, 8.0f, 0, 12,
-            cocos2d::Color4F(ind.cr, ind.cg, ind.cb, 0.15f));
+        housingNode_->drawSolidCircle(pos, 7.0f, 0, 12,
+            cocos2d::Color4F(ind.cr, ind.cg, ind.cb, 0.12f));
 
-        // Label
-        auto* label = cocos2d::Label::createWithSystemFont(ind.label, "Courier", 7);
-        label->setPosition(pos + cocos2d::Vec2(0, -12));
-        label->setTextColor(cocos2d::Color4B(
-            (uint8_t)(ind.cr * 200), (uint8_t)(ind.cg * 200),
-            (uint8_t)(ind.cb * 200), 160));
+        // Label below
+        auto* label = cocos2d::Label::createWithSystemFont(ind.label, "Courier", 6);
+        label->setPosition(pos + cocos2d::Vec2(0, -10));
+        label->setTextColor(cocos2d::Color4B(160, 160, 140, 200));
         housingNode_->addChild(label);
     }
+}
 
-    // Manufacturer plate
+// ============================================================================
+// Manufacturer plate
+// ============================================================================
+
+void ConsoleFrame::drawManufacturerPlate()
+{
+    float hh = bezelH_ * 0.5f;
+
+    // Small plate at very bottom of bezel
+    float plateY = -hh + 4.0f;
     housingNode_->drawSolidRect(
-        cocos2d::Vec2(-60, -scopeRadius_ - 58),
-        cocos2d::Vec2(60, -scopeRadius_ - 44),
-        cocos2d::Color4F(0.20f, 0.22f, 0.18f, 1.0f));
+        cocos2d::Vec2(-55, plateY),
+        cocos2d::Vec2(55, plateY + 12),
+        cocos2d::Color4F(0.55f, 0.53f, 0.47f, 1.0f));
     housingNode_->drawRect(
-        cocos2d::Vec2(-60, -scopeRadius_ - 58),
-        cocos2d::Vec2(60, -scopeRadius_ - 44),
-        cocos2d::Color4F(0.26f, 0.28f, 0.23f, 1.0f));
+        cocos2d::Vec2(-55, plateY),
+        cocos2d::Vec2(55, plateY + 12),
+        cocos2d::Color4F(0.45f, 0.43f, 0.38f, 1.0f));
 
     auto* mfgLabel = cocos2d::Label::createWithSystemFont(
-        "HUGHES AIRCRAFT", "Courier", 7);
-    mfgLabel->setPosition(cocos2d::Vec2(0, -scopeRadius_ - 51));
-    mfgLabel->setTextColor(cocos2d::Color4B(140, 145, 130, 200));
+        "HUGHES AIRCRAFT CO", "Courier", 5);
+    mfgLabel->setPosition(cocos2d::Vec2(0, plateY + 6));
+    mfgLabel->setTextColor(cocos2d::Color4B(40, 40, 35, 200));
     housingNode_->addChild(mfgLabel);
+
+    auto* modelLabel = cocos2d::Label::createWithSystemFont(
+        "AN/TSQ-72", "Courier", 5);
+    modelLabel->setPosition(cocos2d::Vec2(0, plateY + 1));
+    modelLabel->setTextColor(cocos2d::Color4B(40, 40, 35, 180));
+    housingNode_->addChild(modelLabel);
 }
 
 // ============================================================================
-// Left Panel: Live Track Table
+// Dynamic indicators — lit buttons, status readouts (updated each frame)
 // ============================================================================
 
-void ConsoleFrame::drawLeftPanel()
+void ConsoleFrame::drawDynamicIndicators()
 {
+    // Illuminate specific fire command buttons based on game state
+    float hw = bezelW_ * 0.5f;
+    float hh = bezelH_ * 0.5f;
+    float scopeCenterY = bezelH_ * 0.15f;
     float r = scopeRadius_;
-    float pw = panelWidth_;
 
-    float panelX = -r - pw - 20.0f;
-    float panelY = -r + 20.0f;
-    float panelH = r * 2.0f - 40.0f;
-
-    // Panel background (dark, overlaid on housing)
-    dataPanelNode_->drawSolidRect(
-        cocos2d::Vec2(panelX + 4, panelY),
-        cocos2d::Vec2(panelX + pw - 4, panelY + panelH),
-        cocos2d::Color4F(0.06f, 0.02f, 0.02f, 0.95f));
-
-    dataPanelNode_->drawRect(
-        cocos2d::Vec2(panelX + 4, panelY),
-        cocos2d::Vec2(panelX + pw - 4, panelY + panelH),
-        cocos2d::Color4F(0.16f, 0.06f, 0.06f, 1.0f));
-
-    float textX = panelX + 10.0f;
-    float topY = panelY + panelH - 10.0f;
-
-    // Header
-    auto* header = cocos2d::Label::createWithSystemFont(
-        "TRACK TABLE", "Courier", 9);
-    header->setPosition(cocos2d::Vec2(textX, topY));
-    header->setAnchorPoint(cocos2d::Vec2(0, 1));
-    header->setTextColor(cocos2d::Color4B(255, 60, 60, 255));
-    dataLabelNode_->addChild(header);
-
-    // Column headers
-    float hdrY = topY - 14.0f;
-    const char* cols[] = { "TRK", "CLS", "RNG", "AZM" };
-    float colX[] = { 0.0f, 32.0f, 64.0f, 96.0f };
-
-    for (int c = 0; c < 4; c++) {
-        auto* colLabel = cocos2d::Label::createWithSystemFont(
-            cols[c], "Courier", 7);
-        colLabel->setPosition(cocos2d::Vec2(textX + colX[c], hdrY));
-        colLabel->setAnchorPoint(cocos2d::Vec2(0, 1));
-        colLabel->setTextColor(cocos2d::Color4B(180, 40, 40, 200));
-        dataLabelNode_->addChild(colLabel);
-    }
-
-    // Separator
-    dataPanelNode_->drawLine(
-        cocos2d::Vec2(textX, hdrY - 4),
-        cocos2d::Vec2(panelX + pw - 12, hdrY - 4),
-        cocos2d::Color4F(0.47f, 0.12f, 0.12f, 0.6f));
-
-    // Track rows
-    if (!trackManager_) return;
-
-    auto tracks = trackManager_->getAllTracks();
-    int maxRows = std::min((int)tracks.size(), 20);
-    float lineH = 11.0f;
-
-    for (int i = 0; i < maxRows; i++) {
-        const auto& track = tracks[i];
-        if (!track.isAlive) continue;
-
-        float rowY = hdrY - 8.0f - lineH * (i + 1);
-
-        // Classification-based color
-        cocos2d::Color4B rowColor;
-        switch (track.classification) {
-            case TrackClassification::HOSTILE:
-                rowColor = cocos2d::Color4B(255, 60, 60, 255); break;
-            case TrackClassification::FRIENDLY:
-                rowColor = cocos2d::Color4B(60, 120, 255, 220); break;
-            case TrackClassification::UNKNOWN:
-                rowColor = cocos2d::Color4B(255, 180, 60, 220); break;
-            default:
-                rowColor = cocos2d::Color4B(180, 180, 180, 180); break;
-        }
-
-        // Highlight selected track
-        if (track.trackId == selectedTrackId_) {
-            dataPanelNode_->drawSolidRect(
-                cocos2d::Vec2(textX - 2, rowY - 2),
-                cocos2d::Vec2(panelX + pw - 12, rowY + lineH - 2),
-                cocos2d::Color4F(1.0f, 1.0f, 0.0f, 0.1f));
-            rowColor = cocos2d::Color4B(255, 255, 60, 255);
-        }
-
-        // Track ID
-        auto* trkLabel = cocos2d::Label::createWithSystemFont(
-            track.getTrackIdString(), "Courier", 7);
-        trkLabel->setPosition(cocos2d::Vec2(textX + colX[0], rowY));
-        trkLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-        trkLabel->setTextColor(rowColor);
-        dataLabelNode_->addChild(trkLabel);
-
-        // Classification (truncated)
-        std::string cls = track.getClassificationString().substr(0, 4);
-        auto* clsLabel = cocos2d::Label::createWithSystemFont(cls, "Courier", 7);
-        clsLabel->setPosition(cocos2d::Vec2(textX + colX[1], rowY));
-        clsLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-        clsLabel->setTextColor(rowColor);
-        dataLabelNode_->addChild(clsLabel);
-
-        // Range (NM)
-        char rngBuf[16];
-        snprintf(rngBuf, sizeof(rngBuf), "%.0f",
-                 track.range * GameConstants::KM_TO_NM);
-        auto* rngLabel = cocos2d::Label::createWithSystemFont(rngBuf, "Courier", 7);
-        rngLabel->setPosition(cocos2d::Vec2(textX + colX[2], rowY));
-        rngLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-        rngLabel->setTextColor(rowColor);
-        dataLabelNode_->addChild(rngLabel);
-
-        // Azimuth
-        char azmBuf[8];
-        snprintf(azmBuf, sizeof(azmBuf), "%03d", (int)track.azimuth);
-        auto* azmLabel = cocos2d::Label::createWithSystemFont(azmBuf, "Courier", 7);
-        azmLabel->setPosition(cocos2d::Vec2(textX + colX[3], rowY));
-        azmLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-        azmLabel->setTextColor(rowColor);
-        dataLabelNode_->addChild(azmLabel);
-    }
-}
-
-// ============================================================================
-// Right Panel: Battery Status + HQ + Threat
-// ============================================================================
-
-void ConsoleFrame::drawRightPanel()
-{
-    float r = scopeRadius_;
-    float pw = panelWidth_;
-
-    float panelX = r + 20.0f;
-    float panelY = -r + 20.0f;
-    float panelH = r * 2.0f - 40.0f;
-
-    // Panel background
-    dataPanelNode_->drawSolidRect(
-        cocos2d::Vec2(panelX + 4, panelY),
-        cocos2d::Vec2(panelX + pw - 4, panelY + panelH),
-        cocos2d::Color4F(0.06f, 0.02f, 0.02f, 0.95f));
-
-    dataPanelNode_->drawRect(
-        cocos2d::Vec2(panelX + 4, panelY),
-        cocos2d::Vec2(panelX + pw - 4, panelY + panelH),
-        cocos2d::Color4F(0.16f, 0.06f, 0.06f, 1.0f));
-
-    float textX = panelX + 10.0f;
-    float topY = panelY + panelH - 10.0f;
-
-    // Battery Status header
-    auto* header = cocos2d::Label::createWithSystemFont(
-        "BATTERY STATUS", "Courier", 9);
-    header->setPosition(cocos2d::Vec2(textX, topY));
-    header->setAnchorPoint(cocos2d::Vec2(0, 1));
-    header->setTextColor(cocos2d::Color4B(255, 60, 60, 255));
-    dataLabelNode_->addChild(header);
-
-    float lineH = 11.0f;
-    float rowY = topY - 14.0f;
-
+    // Fire button glow when engaged
     if (fireControl_) {
         auto batteries = fireControl_->getAllBatteryData();
-
-        // Column headers
-        const char* cols[] = { "UNIT", "MSL", "STS", "TGT" };
-        float colX[] = { 0.0f, 60.0f, 90.0f, 120.0f };
-        cocos2d::Color4B dimRed(180, 40, 40, 200);
-
-        for (int c = 0; c < 4; c++) {
-            auto* colLabel = cocos2d::Label::createWithSystemFont(
-                cols[c], "Courier", 7);
-            colLabel->setPosition(cocos2d::Vec2(textX + colX[c], rowY));
-            colLabel->setAnchorPoint(cocos2d::Vec2(0, 1));
-            colLabel->setTextColor(dimRed);
-            dataLabelNode_->addChild(colLabel);
+        bool anyEngaged = false;
+        bool anyReady = false;
+        for (const auto& bat : batteries) {
+            if (bat.status == BatteryStatus::ENGAGED) anyEngaged = true;
+            if (bat.status == BatteryStatus::READY) anyReady = true;
         }
 
-        // Separator
-        dataPanelNode_->drawLine(
-            cocos2d::Vec2(textX, rowY - 4),
-            cocos2d::Vec2(panelX + pw - 12, rowY - 4),
-            cocos2d::Color4F(0.47f, 0.12f, 0.12f, 0.6f));
+        // Glow the ENG button when batteries are firing
+        float fireTop = scopeCenterY - r - 20.0f;
+        float fireLeft = -hw + 14.0f;
+        float fireRight = -20.0f;
+        float fireW = fireRight - fireLeft;
+        float fbtnW = 28.0f;
+        float fbtnH = 18.0f;
+        float fbtnGap = 4.0f;
+        float row1StartX = fireLeft + (fireW - 3 * (fbtnW + fbtnGap) + fbtnGap) * 0.5f + fbtnW * 0.5f;
+        float row1Y = fireTop - 10.0f;
 
-        rowY -= 8.0f;
-
-        for (int i = 0; i < (int)batteries.size(); i++) {
-            const auto& bat = batteries[i];
-            float y = rowY - lineH * (i + 1);
-
-            // Determine status string and color
-            const char* statusStr;
-            cocos2d::Color4B statusColor;
-            switch (bat.status) {
-                case BatteryStatus::READY:
-                    statusStr = "RDY";
-                    statusColor = cocos2d::Color4B(60, 255, 60, 255); break;
-                case BatteryStatus::ENGAGED:
-                    statusStr = "ENG";
-                    statusColor = cocos2d::Color4B(255, 60, 60, 255); break;
-                case BatteryStatus::RELOADING:
-                    statusStr = "RLD";
-                    statusColor = cocos2d::Color4B(255, 180, 60, 255); break;
-                case BatteryStatus::OFFLINE:
-                    statusStr = "OFF";
-                    statusColor = cocos2d::Color4B(120, 120, 120, 200); break;
-                case BatteryStatus::DESTROYED:
-                    statusStr = "DES";
-                    statusColor = cocos2d::Color4B(255, 0, 0, 255); break;
-                default:
-                    statusStr = "TRK";
-                    statusColor = cocos2d::Color4B(255, 255, 60, 255); break;
-            }
-
-            cocos2d::Color4B unitColor(220, 80, 60, 240);
-
-            // Designation
-            auto* desLabel = cocos2d::Label::createWithSystemFont(
-                bat.designation, "Courier", 7);
-            desLabel->setPosition(cocos2d::Vec2(textX + colX[0], y));
-            desLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-            desLabel->setTextColor(unitColor);
-            dataLabelNode_->addChild(desLabel);
-
-            // Missiles
-            char mslBuf[8];
-            snprintf(mslBuf, sizeof(mslBuf), "%d/%d",
-                     bat.missilesRemaining, bat.maxMissiles);
-            auto* mslLabel = cocos2d::Label::createWithSystemFont(
-                mslBuf, "Courier", 7);
-            mslLabel->setPosition(cocos2d::Vec2(textX + colX[1], y));
-            mslLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-            mslLabel->setTextColor(unitColor);
-            dataLabelNode_->addChild(mslLabel);
-
-            // Status
-            auto* stsLabel = cocos2d::Label::createWithSystemFont(
-                statusStr, "Courier", 7);
-            stsLabel->setPosition(cocos2d::Vec2(textX + colX[2], y));
-            stsLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-            stsLabel->setTextColor(statusColor);
-            dataLabelNode_->addChild(stsLabel);
-
-            // Target
-            std::string tgt = bat.assignedTrackId >= 0
-                ? "TK-" + std::to_string(bat.assignedTrackId)
-                : "---";
-            auto* tgtLabel = cocos2d::Label::createWithSystemFont(
-                tgt, "Courier", 7);
-            tgtLabel->setPosition(cocos2d::Vec2(textX + colX[3], y));
-            tgtLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-            tgtLabel->setTextColor(unitColor);
-            dataLabelNode_->addChild(tgtLabel);
+        if (anyEngaged) {
+            // Pulse the ENGAGE button
+            float pulse = 0.5f + 0.5f * sinf((float)clock() / 200.0f);
+            dynamicNode_->drawSolidRect(
+                cocos2d::Vec2(row1StartX - fbtnW * 0.5f - 2, row1Y - fbtnH * 0.5f - 2),
+                cocos2d::Vec2(row1StartX + fbtnW * 0.5f + 2, row1Y + fbtnH * 0.5f + 2),
+                cocos2d::Color4F(0.8f, 0.15f, 0.1f, 0.25f * pulse));
         }
-
-        rowY -= lineH * ((int)batteries.size() + 2) + 8.0f;
     }
 
-    // HQ / Threat section
-    dataPanelNode_->drawLine(
-        cocos2d::Vec2(textX, rowY + lineH),
-        cocos2d::Vec2(panelX + pw - 12, rowY + lineH),
-        cocos2d::Color4F(0.47f, 0.12f, 0.12f, 0.4f));
+    // Threat indicator on the right panel — light up some buttons
+    if (threatBoard_ && threatBoard_->getThreatCount() > 0) {
+        float panelLeft = r + 16.0f;
+        float upperTop = scopeCenterY + r * 0.7f;
+        float btnH = 14.0f;
+        float gap = 3.0f;
 
-    auto* hqHeader = cocos2d::Label::createWithSystemFont(
-        "HQ / THREAT", "Courier", 9);
-    hqHeader->setPosition(cocos2d::Vec2(textX, rowY));
-    hqHeader->setAnchorPoint(cocos2d::Vec2(0, 0));
-    hqHeader->setTextColor(cocos2d::Color4B(255, 60, 60, 255));
-    dataLabelNode_->addChild(hqHeader);
-
-    rowY -= lineH + 4.0f;
-
-    if (battalionHQ_) {
-        auto hqData = battalionHQ_->getData();
-        cocos2d::Color4B hqColor = hqData.radarOnline
-            ? cocos2d::Color4B(60, 255, 60, 230)
-            : cocos2d::Color4B(255, 60, 60, 230);
-
-        char hqBuf[64];
-        snprintf(hqBuf, sizeof(hqBuf), "HQ:%s", hqData.statusString.c_str());
-        auto* hqLabel = cocos2d::Label::createWithSystemFont(hqBuf, "Courier", 7);
-        hqLabel->setPosition(cocos2d::Vec2(textX, rowY));
-        hqLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-        hqLabel->setTextColor(hqColor);
-        dataLabelNode_->addChild(hqLabel);
-
-        rowY -= lineH;
-
-        char sysBuf[48];
-        snprintf(sysBuf, sizeof(sysBuf), "RDR:%s COM:%s",
-                 hqData.radarOnline ? "ON" : "OFF",
-                 hqData.commsOnline ? "ON" : "OFF");
-        auto* sysLabel = cocos2d::Label::createWithSystemFont(sysBuf, "Courier", 7);
-        sysLabel->setPosition(cocos2d::Vec2(textX, rowY));
-        sysLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-        sysLabel->setTextColor(hqColor);
-        dataLabelNode_->addChild(sysLabel);
-
-        rowY -= lineH;
-    }
-
-    // Threat count
-    if (threatBoard_) {
-        int threatCount = threatBoard_->getThreatCount();
-        cocos2d::Color4B threatColor = threatCount > 0
-            ? cocos2d::Color4B(255, 60, 60, 255)
-            : cocos2d::Color4B(60, 255, 60, 200);
-
-        char thrBuf[32];
-        snprintf(thrBuf, sizeof(thrBuf), "THREATS: %d", threatCount);
-        auto* thrLabel = cocos2d::Label::createWithSystemFont(thrBuf, "Courier", 8);
-        thrLabel->setPosition(cocos2d::Vec2(textX, rowY));
-        thrLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
-        thrLabel->setTextColor(threatColor);
-        dataLabelNode_->addChild(thrLabel);
+        // Flash the top-right button row amber
+        float pulse = 0.5f + 0.5f * sinf((float)clock() / 150.0f);
+        float rowY = upperTop;
+        dynamicNode_->drawSolidRect(
+            cocos2d::Vec2(panelLeft, rowY - 2),
+            cocos2d::Vec2(panelLeft + 100, rowY + btnH + 2),
+            cocos2d::Color4F(0.6f, 0.35f, 0.05f, 0.15f * pulse));
     }
 }
 
 // ============================================================================
-// Bottom bar: Score, level, latest message
+// Bottom bar — score, level, latest message (below the bezel)
 // ============================================================================
 
 void ConsoleFrame::drawBottomBar()
 {
-    float r = scopeRadius_;
-    float pw = panelWidth_;
+    float hh = bezelH_ * 0.5f;
+    float hw = bezelW_ * 0.5f;
 
-    float barLeft  = -r - pw - 16.0f;
-    float barRight =  r + pw + 16.0f;
-    float barTop   = -r - 82.0f;
-    float barBot   = -r - 110.0f;
+    float barTop = -hh - 6.0f;
+    float barBot = -hh - 28.0f;
+    float barLeft = -hw;
+    float barRight = hw;
 
     // Background
-    dataPanelNode_->drawSolidRect(
+    dynamicNode_->drawSolidRect(
         cocos2d::Vec2(barLeft, barBot),
         cocos2d::Vec2(barRight, barTop),
         cocos2d::Color4F(0.06f, 0.02f, 0.02f, 0.9f));
 
-    dataPanelNode_->drawRect(
+    dynamicNode_->drawRect(
         cocos2d::Vec2(barLeft, barBot),
         cocos2d::Vec2(barRight, barTop),
         cocos2d::Color4F(0.16f, 0.06f, 0.06f, 0.6f));
@@ -718,33 +860,33 @@ void ConsoleFrame::drawBottomBar()
     char scoreBuf[32];
     snprintf(scoreBuf, sizeof(scoreBuf), "SCORE: %d", score_);
     auto* scoreLabel = cocos2d::Label::createWithSystemFont(
-        scoreBuf, "Courier", 10);
-    scoreLabel->setPosition(cocos2d::Vec2(barLeft + 12, midY));
+        scoreBuf, "Courier", 9);
+    scoreLabel->setPosition(cocos2d::Vec2(barLeft + 10, midY));
     scoreLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
     scoreLabel->setTextColor(score_ < 0
         ? cocos2d::Color4B(255, 80, 80, 255)
         : cocos2d::Color4B(255, 100, 60, 255));
-    dataLabelNode_->addChild(scoreLabel);
+    labelNode_->addChild(scoreLabel);
 
     // Level
     char lvlBuf[16];
     snprintf(lvlBuf, sizeof(lvlBuf), "LV:%d", level_);
     auto* lvlLabel = cocos2d::Label::createWithSystemFont(
-        lvlBuf, "Courier", 10);
-    lvlLabel->setPosition(cocos2d::Vec2(barLeft + 120, midY));
+        lvlBuf, "Courier", 9);
+    lvlLabel->setPosition(cocos2d::Vec2(barLeft + 100, midY));
     lvlLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
     lvlLabel->setTextColor(cocos2d::Color4B(255, 180, 60, 255));
-    dataLabelNode_->addChild(lvlLabel);
+    labelNode_->addChild(lvlLabel);
 
     // Latest message
     if (!messages_.empty()) {
-        std::string msg = messages_.back().substr(0, 55);
+        std::string msg = messages_.back().substr(0, 60);
         auto* msgLabel = cocos2d::Label::createWithSystemFont(
-            msg, "Courier", 8);
-        msgLabel->setPosition(cocos2d::Vec2(barLeft + 200, midY));
+            msg, "Courier", 7);
+        msgLabel->setPosition(cocos2d::Vec2(barLeft + 170, midY));
         msgLabel->setAnchorPoint(cocos2d::Vec2(0, 0.5f));
         msgLabel->setTextColor(cocos2d::Color4B(0, 220, 0, 200));
-        dataLabelNode_->addChild(msgLabel);
+        labelNode_->addChild(msgLabel);
     }
 }
 
@@ -753,18 +895,19 @@ void ConsoleFrame::drawBottomBar()
 // Stub ConsoleFrame (no cocos2d-x)
 // ============================================================================
 
-ConsoleFrame* ConsoleFrame::create(float scopeRadius, float panelWidth)
+ConsoleFrame* ConsoleFrame::create(float scopeRadius)
 {
     auto* frame = new ConsoleFrame();
-    if (frame->init(scopeRadius, panelWidth)) return frame;
+    if (frame->init(scopeRadius)) return frame;
     delete frame;
     return nullptr;
 }
 
-bool ConsoleFrame::init(float scopeRadius, float panelWidth)
+bool ConsoleFrame::init(float scopeRadius)
 {
     scopeRadius_ = scopeRadius;
-    panelWidth_ = panelWidth;
+    bezelW_ = scopeRadius * 2.0f + 240.0f;
+    bezelH_ = bezelW_ * 1.25f;
     return true;
 }
 

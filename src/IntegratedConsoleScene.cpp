@@ -63,14 +63,18 @@ void IntegratedConsoleScene::initConsole()
     auto visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
     auto center = cocos2d::Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.5f);
 
-    // Size the radar to fit with side panels
-    float maxRadarH = visibleSize.height * 0.42f;
-    float maxRadarW = (visibleSize.width - 360.0f) * 0.5f; // leave room for panels
-    float radarRadius = std::min(maxRadarH, maxRadarW);
-    float panelWidth = 150.0f;
+    // AN/TSQ-72 portrait console: bezel is 25% taller than wide.
+    // Size the radar scope so the full bezel fits on screen.
+    // bezelW = 2*r + 240, bezelH = bezelW * 1.25
+    float maxBezelW = visibleSize.width * 0.85f;
+    float maxBezelH = visibleSize.height * 0.88f;
+    // From bezelH = (2r+240)*1.25, solve for r:
+    float rFromH = (maxBezelH / 1.25f - 240.0f) * 0.5f;
+    float rFromW = (maxBezelW - 240.0f) * 0.5f;
+    float radarRadius = std::max(80.0f, std::min(rFromH, rFromW));
 
-    // Console frame — housing, background, data panels
-    consoleFrame_ = ConsoleFrame::create(radarRadius, panelWidth);
+    // Console frame — AN/TSQ-72 analog console housing
+    consoleFrame_ = ConsoleFrame::create(radarRadius);
     consoleFrame_->setPosition(center);
     consoleFrame_->setTrackManager(&trackManager_);
     consoleFrame_->setFireControlSystem(&fireControlSystem_);
@@ -79,9 +83,10 @@ void IntegratedConsoleScene::initConsole()
     consoleFrame_->setLevel(gameConfig_.getLevel());
     addChild(consoleFrame_, 0);
 
-    // Radar display — PPI scope, centered at same position
+    // Radar display — PPI scope, offset to upper portion of bezel
+    float scopeCenterY = consoleFrame_->getBezelHeight() * 0.15f;
     radarDisplay_ = RadarDisplay::create(radarRadius);
-    radarDisplay_->setPosition(center);
+    radarDisplay_->setPosition(center + cocos2d::Vec2(0, scopeCenterY));
     radarDisplay_->setTrackManager(&trackManager_);
     radarDisplay_->setFireControlSystem(&fireControlSystem_);
     addChild(radarDisplay_, 1);
