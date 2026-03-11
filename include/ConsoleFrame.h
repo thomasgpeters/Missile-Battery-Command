@@ -93,6 +93,7 @@ private:
     // Static drawing (called once in init)
     void drawShelterBackground();
     void drawChassis();
+    void drawPatina();          // Weathering, scuffs, paint wear on chassis
     void drawPortraitDisplay();
     void drawScopeRing();
     void drawLeftPanel();
