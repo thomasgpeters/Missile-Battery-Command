@@ -63,14 +63,15 @@ void IntegratedConsoleScene::initConsole()
     auto visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
     auto center = cocos2d::Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.5f);
 
-    // AN/TSQ-73 portrait console: bezel is 25% taller than wide.
-    // Size the radar scope so the full bezel fits on screen.
-    // bezelW = 2*r + 240, bezelH = bezelW * 1.25
-    float maxBezelW = visibleSize.width * 0.85f;
-    float maxBezelH = visibleSize.height * 0.88f;
-    // From bezelH = (2r+240)*1.25, solve for r:
-    float rFromH = (maxBezelH / 1.25f - 240.0f) * 0.5f;
-    float rFromW = (maxBezelW - 240.0f) * 0.5f;
+    // AN/TSQ-73 console: central portrait display + flanking control panels.
+    // bezelW = (2r + 50) + 2*(8 + 100) + 20 = 2r + 286
+    // bezelH = ((2r + 50) * 1.35 + 40) + 80
+    // Solve for r given max screen dimensions:
+    float maxBezelW = visibleSize.width * 0.88f;
+    float maxBezelH = visibleSize.height * 0.90f;
+    float rFromW = (maxBezelW - 286.0f) * 0.5f;
+    // From bezelH: maxH = (2r+50)*1.35 + 120 => r = ((maxH-120)/1.35 - 50)/2
+    float rFromH = ((maxBezelH - 120.0f) / 1.35f - 50.0f) * 0.5f;
     float radarRadius = std::max(80.0f, std::min(rFromH, rFromW));
 
     // Console frame — AN/TSQ-73 analog console housing
@@ -83,8 +84,8 @@ void IntegratedConsoleScene::initConsole()
     consoleFrame_->setLevel(gameConfig_.getLevel());
     addChild(consoleFrame_, 0);
 
-    // Radar display — PPI scope, offset to upper portion of bezel
-    float scopeCenterY = consoleFrame_->getBezelHeight() * 0.15f;
+    // Radar display — PPI scope, centered in the portrait display
+    float scopeCenterY = consoleFrame_->getScopeCenterY();
     radarDisplay_ = RadarDisplay::create(radarRadius);
     radarDisplay_->setPosition(center + cocos2d::Vec2(0, scopeCenterY));
     radarDisplay_->setTrackManager(&trackManager_);
