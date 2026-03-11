@@ -110,6 +110,14 @@ private:
                          const cocos2d::Color4F& fill,
                          const cocos2d::Color4F& border);
 
+    // Helper: draw an octagonal shape (rectangle with 45° chamfered corners)
+    void drawOctagon(cocos2d::DrawNode* node,
+                     const cocos2d::Vec2& origin,
+                     const cocos2d::Vec2& dest,
+                     float chamfer,
+                     const cocos2d::Color4F& fill,
+                     const cocos2d::Color4F& border);
+
     // Helper: draw a row of illuminated pushbuttons
     void drawButtonRow(cocos2d::DrawNode* node,
                        float x, float y, int count,
