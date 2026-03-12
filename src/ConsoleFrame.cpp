@@ -1102,7 +1102,7 @@ void ConsoleFrame::drawTopIndicatorRow()
     float displayTop = displayCenterY_ + displayH_ * 0.5f;
     float hh = bezelH_ * 0.5f;
 
-    float indicatorY = displayTop + 12.0f;
+    float indicatorY = displayTop + 22.0f;
     float indicatorTop = hh - 10.0f;
 
     // Background strip for indicators (spans across display width)
