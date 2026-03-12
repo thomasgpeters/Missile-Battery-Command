@@ -52,6 +52,8 @@ public:
 
     // Toggle options
     void setShowNoise(bool show) { showNoise_ = show; }
+    void setPhosphorColor(PhosphorColor c);
+    PhosphorColor getPhosphorColor() const { return phosphorColor_; }
 
 private:
     float radius_;          // Coordinate-mapping radius (aircraft at max range map here)
@@ -65,6 +67,10 @@ private:
 
     // Display options
     bool showNoise_;
+    PhosphorColor phosphorColor_;
+
+    // Helper: get tinted color based on phosphor type
+    cocos2d::Color4F phosphorTint(float intensity, float alpha) const;
 
     // RadarBlip entities — one per active track
     std::unordered_map<int, RadarBlip*> blips_;
@@ -123,6 +129,8 @@ public:
     int findNearestTrack(float localX, float localY, float maxDist = 20.0f) const;
 
     void setShowNoise(bool show) { showNoise_ = show; }
+    void setPhosphorColor(PhosphorColor c) { phosphorColor_ = c; }
+    PhosphorColor getPhosphorColor() const { return phosphorColor_; }
 
     float kmToPixels(float km) const;
 
@@ -134,6 +142,7 @@ private:
     TrackManager* trackManager_ = nullptr;
     FireControlSystem* fireControl_ = nullptr;
     bool showNoise_ = true;
+    PhosphorColor phosphorColor_ = PhosphorColor::GREEN;
 };
 #endif
 

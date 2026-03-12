@@ -38,6 +38,7 @@ bool RadarDisplay::init(float radius)
     trackManager_ = nullptr;
     fireControl_ = nullptr;
     showNoise_ = true;
+    phosphorColor_ = PhosphorColor::GREEN;
     noiseRefreshTimer_ = 0.0f;
 
     // Drawing layers (order matters for z-depth)
@@ -61,6 +62,36 @@ bool RadarDisplay::init(float radius)
 
     scheduleUpdate();
     return true;
+}
+
+// ============================================================================
+// Phosphor color — P1 green or P39 amber tint
+// ============================================================================
+
+cocos2d::Color4F RadarDisplay::phosphorTint(float intensity, float alpha) const
+{
+    if (phosphorColor_ == PhosphorColor::AMBER) {
+        return cocos2d::Color4F(intensity * 1.0f, intensity * 0.65f, intensity * 0.1f, alpha);
+    }
+    return cocos2d::Color4F(0.0f, intensity, 0.0f, alpha);
+}
+
+void RadarDisplay::setPhosphorColor(PhosphorColor c)
+{
+    phosphorColor_ = c;
+    // Redraw static background with new phosphor color
+    backgroundNode_->clear();
+    backgroundNode_->removeAllChildren();
+    drawBackground();
+    // Refresh noise with new color
+    if (showNoise_) {
+        noiseNode_->clear();
+        drawRadarNoise();
+    }
+    // Propagate to all existing blips
+    for (auto& pair : blips_) {
+        pair.second->setPhosphorColor(c);
+    }
 }
 
 // ============================================================================
@@ -121,7 +152,7 @@ void RadarDisplay::drawBackground()
     // Outer rim at coordinate radius (visible edge of the playfield)
     backgroundNode_->drawCircle(
         cocos2d::Vec2::ZERO, radius_, 0, 72, false,
-        cocos2d::Color4F(0.0f, 0.7f, 0.0f, 0.9f));
+        phosphorTint(0.7f, 0.9f));
 
     drawRangeRings();
     drawAzimuthLines();
@@ -141,7 +172,7 @@ void RadarDisplay::drawRangeRings()
 
         backgroundNode_->drawCircle(
             cocos2d::Vec2::ZERO, ringRadius, 0, 72, false,
-            cocos2d::Color4F(0.0f, 0.35f, 0.0f, alpha));
+            phosphorTint(0.35f, alpha));
 
         // Range label in nautical miles (positioned just right of north axis)
         float rangeKm = (GameConstants::RADAR_MAX_RANGE_KM /
@@ -152,7 +183,10 @@ void RadarDisplay::drawRangeRings()
         auto* rangeLabel = cocos2d::Label::createWithSystemFont(
             label, "Courier", 9);
         rangeLabel->setPosition(cocos2d::Vec2(4, ringRadius + 3));
-        rangeLabel->setTextColor(cocos2d::Color4B(0, 160, 0, 140));
+        auto pTint = phosphorTint(0.63f, 0.55f);
+        rangeLabel->setTextColor(cocos2d::Color4B(
+            (uint8_t)(pTint.r * 255), (uint8_t)(pTint.g * 255),
+            (uint8_t)(pTint.b * 255), 140));
         rangeLabel->setAnchorPoint(cocos2d::Vec2(0, 0));
         backgroundNode_->addChild(rangeLabel);
     }
@@ -175,7 +209,7 @@ void RadarDisplay::drawAzimuthLines()
         float alpha = (i % 3 == 0) ? 0.35f : 0.18f;
         backgroundNode_->drawLine(
             cocos2d::Vec2::ZERO, end,
-            cocos2d::Color4F(0.0f, 0.25f, 0.0f, alpha));
+            phosphorTint(0.25f, alpha));
 
         // Azimuth label at the coordinate radius edge
         cocos2d::Vec2 coordEnd(radius_ * std::sin(rad), radius_ * std::cos(rad));
@@ -183,8 +217,11 @@ void RadarDisplay::drawAzimuthLines()
         auto* azLabel = cocos2d::Label::createWithSystemFont(
             labels[i], "Courier", (i % 3 == 0) ? 12 : 9);
         azLabel->setPosition(labelPos);
+        float lblInt = (i % 3 == 0) ? 0.86f : 0.63f;
+        auto azTint = phosphorTint(lblInt, 1.0f);
         azLabel->setTextColor(cocos2d::Color4B(
-            0, (i % 3 == 0) ? 220 : 160, 0, (i % 3 == 0) ? 220 : 160));
+            (uint8_t)(azTint.r * 255), (uint8_t)(azTint.g * 255),
+            (uint8_t)(azTint.b * 255), (i % 3 == 0) ? 220 : 160));
         backgroundNode_->addChild(azLabel);
     }
 
@@ -199,14 +236,14 @@ void RadarDisplay::drawAzimuthLines()
         cocos2d::Vec2 outer(radius_ * std::sin(rad), radius_ * std::cos(rad));
 
         backgroundNode_->drawLine(inner, outer,
-            cocos2d::Color4F(0.0f, 0.3f, 0.0f, 0.25f));
+            phosphorTint(0.3f, 0.25f));
     }
 }
 
 void RadarDisplay::drawCenterCrosshair()
 {
     float len = 6.0f;
-    cocos2d::Color4F color(0.0f, 0.6f, 0.0f, 0.6f);
+    cocos2d::Color4F color = phosphorTint(0.6f, 0.6f);
 
     backgroundNode_->drawLine(
         cocos2d::Vec2(-len, 0), cocos2d::Vec2(len, 0), color);
@@ -225,19 +262,19 @@ void RadarDisplay::drawSweepBeam()
     float rad = sweepAngle_ * M_PI / 180.0f;
     cocos2d::Vec2 beamEnd(sweepRadius_ * std::sin(rad), sweepRadius_ * std::cos(rad));
 
-    // Leading edge — bright green line
+    // Leading edge — bright phosphor line
     sweepNode_->drawLine(
         cocos2d::Vec2::ZERO, beamEnd,
-        cocos2d::Color4F(0.0f, 1.0f, 0.0f, 0.85f));
+        phosphorTint(1.0f, 0.85f));
 
     // Slightly thicker glow line along the beam
     float perpX = -std::cos(rad);
     float perpY = std::sin(rad);
     cocos2d::Vec2 offset(perpX * 0.5f, perpY * 0.5f);
     sweepNode_->drawLine(offset, beamEnd + offset,
-        cocos2d::Color4F(0.0f, 0.8f, 0.0f, 0.3f));
+        phosphorTint(0.8f, 0.3f));
     sweepNode_->drawLine(-offset, beamEnd - offset,
-        cocos2d::Color4F(0.0f, 0.8f, 0.0f, 0.3f));
+        phosphorTint(0.8f, 0.3f));
 
     // Trailing phosphor glow — filled triangle wedge segments
     for (int i = 1; i <= SWEEP_TRAIL_SEGMENTS; i++) {
@@ -258,7 +295,7 @@ void RadarDisplay::drawSweepBeam()
 
         cocos2d::Vec2 verts[] = {cocos2d::Vec2::ZERO, p1, p2};
         sweepNode_->drawPolygon(verts, 3,
-            cocos2d::Color4F(0.0f, 0.6f, 0.0f, avgAlpha),
+            phosphorTint(0.6f, avgAlpha),
             0, cocos2d::Color4F::BLACK);
     }
 }
@@ -290,7 +327,7 @@ void RadarDisplay::drawRadarNoise()
         float size = sizeDist(rng);
 
         noiseNode_->drawSolidCircle(pos, size, 0, 4,
-            cocos2d::Color4F(0.0f, 0.5f, 0.0f, alpha));
+            phosphorTint(0.5f, alpha));
     }
 }
 
@@ -329,6 +366,7 @@ void RadarDisplay::syncBlips(float dt)
         if (it == blips_.end()) {
             // New contact — create a RadarBlip entity
             auto* blip = RadarBlip::create();
+            blip->setPhosphorColor(phosphorColor_);
             blip->setTrackData(track);
             blipContainer_->addChild(blip);
             blips_[track.trackId] = blip;
@@ -419,7 +457,7 @@ void RadarDisplay::drawTrailDots()
 
             if (alpha > 0.02f) {
                 trailNode_->drawSolidCircle(pos, size, 0, 4,
-                    cocos2d::Color4F(0.0f, 0.5f, 0.0f, alpha));
+                    phosphorTint(0.5f, alpha));
             }
         }
     }
@@ -509,7 +547,7 @@ void RadarDisplay::drawTerritoryZone()
                           territoryPixels * std::cos(a2));
 
         overlayNode_->drawLine(p1, p2,
-            cocos2d::Color4F(0.0f, 0.8f, 0.0f, 0.35f));
+            phosphorTint(0.8f, 0.35f));
     }
 }
 

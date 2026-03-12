@@ -220,6 +220,19 @@ void IntegratedConsoleScene::initInputHandlers()
                 onFireAuthorized(); break;
             case cocos2d::EventKeyboard::KeyCode::KEY_A:
                 onAbortEngagement(); break;
+            case cocos2d::EventKeyboard::KeyCode::KEY_P:
+                // Toggle phosphor color (P1 green <-> P39 amber)
+                if (radarDisplay_) {
+                    auto newColor = (radarDisplay_->getPhosphorColor() == PhosphorColor::GREEN)
+                                     ? PhosphorColor::AMBER : PhosphorColor::GREEN;
+                    radarDisplay_->setPhosphorColor(newColor);
+                    if (consoleFrame_) {
+                        consoleFrame_->addMessage(
+                            newColor == PhosphorColor::AMBER
+                            ? "PHOSPHOR: P39 AMBER" : "PHOSPHOR: P1 GREEN");
+                    }
+                }
+                break;
             default:
                 break;
         }

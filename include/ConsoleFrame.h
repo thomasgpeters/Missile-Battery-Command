@@ -65,10 +65,11 @@ private:
     float bezelH_;
 
     // Central portrait display (rounded-corner rectangle containing the scope)
-    float displayW_;         // display viewport width
+    float displayW_;         // display viewport width (glass opening)
     float displayH_;         // display viewport height (portrait: taller than wide)
     float displayCenterY_;   // Y offset of display center from console center
     float displayCornerR_;   // rounded corner radius on the display
+    float bezelThick_;       // octagonal bezel thickness around the glass
 
     // Side panel dimensions
     float panelW_;           // width of each side panel
@@ -177,6 +178,8 @@ private:
     float displayW_ = 0.0f;
     float displayH_ = 0.0f;
     float displayCenterY_ = 0.0f;
+    float displayCornerR_ = 0.0f;
+    float bezelThick_ = 0.0f;
     float panelW_ = 0.0f;
     float panelGap_ = 0.0f;
     float panelH_ = 0.0f;

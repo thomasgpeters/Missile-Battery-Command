@@ -33,6 +33,12 @@ enum class TrackClassification {
     UNKNOWN
 };
 
+// CRT phosphor color — P1 green or P39 amber
+enum class PhosphorColor {
+    GREEN,      // P1 phosphor (standard radar CRT)
+    AMBER       // P39 phosphor (warm amber/orange)
+};
+
 enum class BatteryType {
     PATRIOT,    // Mobile Patriot Missile Battery (MPMB)
     HAWK,       // Hawk Surface-to-Air Missile Battery (HSAMB)
