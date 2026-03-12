@@ -974,6 +974,103 @@ void ConsoleFrame::drawRightPanel()
                       btnFace, greenLit);
     }
 
+    // === GRID COORD thumbwheels (8 digits for UTM easting/northing) ===
+    float twSectionTop = lowerTop - 3 * rowStep - sectionGap;
+
+    auto* coordLabel = cocos2d::Label::createWithSystemFont("GRID COORD", "Courier", 5);
+    coordLabel->setPosition(cocos2d::Vec2(panelCX, twSectionTop + 12));
+    coordLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 180));
+    panelNode_->addChild(coordLabel);
+
+    // Two rows of 4 thumbwheels: top = EASTING, bottom = NORTHING
+    float twW = 14.0f;      // wheel width
+    float twH = 18.0f;      // wheel height
+    float twGap = 3.0f;     // gap between wheels
+    float twRowGap = 6.0f;  // gap between the two rows
+    int twCols = 4;
+    float twTotalW = twCols * twW + (twCols - 1) * twGap;
+    float twStartX = panelCX - twTotalW * 0.5f;
+
+    // Recessed background for thumbwheel area
+    float twBgL = twStartX - 6.0f;
+    float twBgR = twStartX + twTotalW + 6.0f;
+    float twBgT = twSectionTop;
+    float twBgB = twSectionTop - 2 * twH - twRowGap - 8.0f;
+    buttonNode_->drawSolidRect(
+        cocos2d::Vec2(twBgL, twBgB),
+        cocos2d::Vec2(twBgR, twBgT),
+        cocos2d::Color4F(0.10f, 0.12f, 0.09f, 1.0f));
+    buttonNode_->drawRect(
+        cocos2d::Vec2(twBgL, twBgB),
+        cocos2d::Vec2(twBgR, twBgT),
+        cocos2d::Color4F(0.28f, 0.36f, 0.30f, 0.6f));
+
+    // Row labels
+    auto* eastLabel = cocos2d::Label::createWithSystemFont("E", "Courier", 5);
+    eastLabel->setPosition(cocos2d::Vec2(twBgL - 6, twSectionTop - twH * 0.5f - 2));
+    eastLabel->setTextColor(cocos2d::Color4B(160, 170, 150, 160));
+    buttonNode_->addChild(eastLabel);
+
+    auto* northLabel = cocos2d::Label::createWithSystemFont("N", "Courier", 5);
+    northLabel->setPosition(cocos2d::Vec2(twBgL - 6, twSectionTop - twH - twRowGap - twH * 0.5f - 2));
+    northLabel->setTextColor(cocos2d::Color4B(160, 170, 150, 160));
+    buttonNode_->addChild(northLabel);
+
+    // Sample digits displayed on each wheel
+    const char* eastDigits[]  = { "3", "4", "7", "2" };
+    const char* northDigits[] = { "5", "8", "1", "6" };
+
+    for (int row = 0; row < 2; row++) {
+        float rowY = twSectionTop - 2.0f - row * (twH + twRowGap) - twH * 0.5f;
+        const char** digits = (row == 0) ? eastDigits : northDigits;
+
+        for (int col = 0; col < twCols; col++) {
+            float cx = twStartX + col * (twW + twGap) + twW * 0.5f;
+
+            // Wheel housing (dark slot)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f, rowY - twH * 0.5f),
+                cocos2d::Vec2(cx + twW * 0.5f, rowY + twH * 0.5f),
+                cocos2d::Color4F(0.06f, 0.06f, 0.05f, 1.0f));
+
+            // Wheel drum face (light gray with ribbed texture)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f + 1, rowY - twH * 0.35f),
+                cocos2d::Vec2(cx + twW * 0.5f - 1, rowY + twH * 0.35f),
+                cocos2d::Color4F(0.72f, 0.70f, 0.66f, 1.0f));
+
+            // Knurled ribs on the wheel edges
+            for (float ry = rowY - twH * 0.35f + 2; ry < rowY + twH * 0.35f - 1; ry += 3.0f) {
+                buttonNode_->drawLine(
+                    cocos2d::Vec2(cx - twW * 0.5f + 1, ry),
+                    cocos2d::Vec2(cx + twW * 0.5f - 1, ry),
+                    cocos2d::Color4F(0.60f, 0.58f, 0.54f, 0.4f));
+            }
+
+            // Digit readout window (white strip in center)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f + 2, rowY - 4),
+                cocos2d::Vec2(cx + twW * 0.5f - 2, rowY + 4),
+                cocos2d::Color4F(0.90f, 0.88f, 0.82f, 1.0f));
+
+            // Digit
+            auto* digitLabel = cocos2d::Label::createWithSystemFont(digits[col], "Courier", 7);
+            digitLabel->setPosition(cocos2d::Vec2(cx, rowY));
+            digitLabel->setTextColor(cocos2d::Color4B(20, 20, 18, 255));
+            buttonNode_->addChild(digitLabel);
+
+            // Shadow at top and bottom of slot (wheel disappears into housing)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f, rowY + twH * 0.5f - 2),
+                cocos2d::Vec2(cx + twW * 0.5f, rowY + twH * 0.5f),
+                cocos2d::Color4F(0.04f, 0.04f, 0.03f, 0.6f));
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f, rowY - twH * 0.5f),
+                cocos2d::Vec2(cx + twW * 0.5f, rowY - twH * 0.5f + 2),
+                cocos2d::Color4F(0.04f, 0.04f, 0.03f, 0.6f));
+        }
+    }
+
     // === CURSOR JOYSTICK (anchored to bottom of right panel) ===
     float panelBot = -hph + inset + 16.0f;          // bottom of inner recess + padding
     float joyY = panelBot + 22.0f;                   // base plate radius up from bottom
