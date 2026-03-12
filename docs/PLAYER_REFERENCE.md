@@ -1,5 +1,86 @@
 # Player Quick Reference
 
+## AN/TSQ-73 Radar Display — Blips, Tracks, and IFF
+
+The PPI (Plan Position Indicator) scope on your AN/TSQ-73 console is the
+primary situational awareness tool. Understanding what you're looking at is
+critical.
+
+### The Sweep Beam
+
+The AN/TPS-43E surveillance radar rotates at 6 RPM, sending a sweep beam
+around the 360-degree scope. As the beam passes a radar contact, the
+phosphor on the CRT flares bright green — this is the **blip** (raw radar
+return). The blip then decays between sweeps, fading as the phosphor loses
+energy. This pulsing behavior is normal — it's how real CRT radar scopes
+work.
+
+### Blips (Raw Radar Returns)
+
+- A blip appears when the sweep beam paints an aircraft's position
+- The blip **pulses** each time the sweep passes — bright on contact, then
+  fading until the next sweep
+- Blip size reflects the aircraft's radar cross-section (RCS):
+  - Large aircraft (bombers, airliners): larger blip
+  - Small aircraft (drones, stealth): smaller blip
+- The blip **moves** across the scope between sweeps based on the aircraft's
+  speed, heading, and altitude — each time the sweep comes around, the blip
+  appears at the aircraft's new position
+- If the aircraft goes out of range or is destroyed, the blip disappears
+
+### Tracks (AN/TSQ-73 Processed Data)
+
+Once the AN/TSQ-73 generates a **track** from a radar blip, the track stays
+on screen **continuously** — it does not pulse with the sweep. The sweep
+only pulses the blip; the track data overlay persists as long as the
+aircraft is present.
+
+Each track displays:
+
+| Element | Description |
+|---------|-------------|
+| **Track ID** | Assigned by IFF interrogation (e.g., TK-001) |
+| **Classification Symbol** | Diamond (hostile/red), Circle (friendly/blue), Square (unknown/yellow) |
+| **Altitude Readout** | Current altitude (e.g., A25 = 25,000 ft, A250 = 25,000 ft) |
+| **Velocity Vector** | A line from the blip center — length represents speed, direction represents heading |
+| **Leader Line** | Connects the blip to the data block |
+
+The track **follows the blip** as it moves. If the aircraft changes speed,
+heading, or altitude, the track data updates in real time. The velocity
+vector lengthens or shortens with speed changes, and rotates with heading
+changes.
+
+**Track removal:** If the aircraft goes out of radar range (250 NM) or is
+no longer present (destroyed), the track is deleted from AN/TSQ-73 memory
+and disappears from the scope.
+
+### IFF — Identification Friend or Foe
+
+All new contacts start as **PENDING** (gray square). The AN/TSQ-73
+automatically sends a Mode 4 IFF interrogation to each new track. This
+takes approximately 2 seconds to complete.
+
+**How IFF works:**
+
+- **Friendly aircraft squawk** — they carry IFF transponders that respond to
+  Mode 4 interrogation with a valid authentication code. When the AN/TSQ-73
+  receives a positive response, the track is classified **FRIENDLY** (blue
+  circle).
+- **Hostile aircraft do NOT squawk** — they have no Mode 4 transponder (or
+  it's not set to friendly codes). The absence of a response tells the
+  AN/TSQ-73 this contact is **HOSTILE** (red diamond).
+- **Unknown** — if the interrogation is inconclusive (jammed, garbled, or
+  stealth aircraft partially evading), the track is classified **UNKNOWN**
+  (yellow square). Stealth aircraft have a 30% chance of returning UNKNOWN
+  even if hostile.
+
+**IFF is not perfect.** The system has an error rate that increases with
+difficulty level. A hostile could be misidentified as friendly, or vice
+versa. Cross-reference speed, altitude, heading, and behavior before
+engaging. Shooting down a friendly or civilian aircraft is catastrophic.
+
+---
+
 ## HQ Status Indicator
 
 The overhead HUD shows current HQ status:
