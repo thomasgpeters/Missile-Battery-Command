@@ -15,6 +15,12 @@ public:
     FireControlSystem();
     ~FireControlSystem();
 
+    // Non-copyable (contains unique_ptr), but movable
+    FireControlSystem(const FireControlSystem&) = delete;
+    FireControlSystem& operator=(const FireControlSystem&) = delete;
+    FireControlSystem(FireControlSystem&&) = default;
+    FireControlSystem& operator=(FireControlSystem&&) = default;
+
     // Initialize batteries at their positions
     void init();
 
