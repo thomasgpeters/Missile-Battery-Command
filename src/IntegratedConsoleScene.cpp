@@ -341,48 +341,186 @@ void IntegratedConsoleScene::initDrawers()
 
 void IntegratedConsoleScene::populateFireControlBook()
 {
-    // Page 1: Fire Control Overview
+    // Page 1: TM cover page
     {
         BookPage page;
-        page.title = "FIRE CONTROL COMMANDS";
+        page.title = "TM 9-1430-600-10-1";
         page.lines = {
-            {"BATTERY ASSIGNMENT", TextColor::YELLOW, true},
+            {"TECHNICAL MANUAL", TextColor::YELLOW, true},
             {""},
-            {"Select a track on the radar scope by"},
-            {"clicking on the blip. Then press a"},
-            {"number key to assign a battery:"},
+            {"OPERATOR'S MANUAL", TextColor::YELLOW, true},
             {""},
-            {"  1-3  PATRIOT batteries", TextColor::GREEN},
-            {"  4-6  HAWK batteries", TextColor::GREEN},
-            {"  7-9  JAVELIN platoons", TextColor::GREEN},
+            {"FIRE DISTRIBUTION CENTER", TextColor::GREEN, true},
+            {"AN/TSQ-73", TextColor::GREEN, true},
+            {"(MISSILE MINDER)", TextColor::GREEN, true},
             {""},
-            {"ENGAGEMENT CONTROLS", TextColor::YELLOW, true},
+            {"HEADQUARTERS,", TextColor::WHITE},
+            {"DEPARTMENT OF THE ARMY", TextColor::WHITE},
             {""},
-            {"  F    Authorize fire", TextColor::GREEN},
-            {"  A    Abort engagement", TextColor::GREEN},
-            {"  P    Toggle phosphor color", TextColor::GREEN},
+            {"THIS PUBLICATION IS REQUIRED FOR"},
+            {"OFFICIAL USE ONLY. DISTRIBUTION"},
+            {"IS LIMITED TO U.S. GOVERNMENT"},
+            {"AGENCIES AND THEIR CONTRACTORS."},
             {""},
-            {"IFF PROCEDURE", TextColor::YELLOW, true},
+            {"WARNING", TextColor::RED, true},
+            {"Improper engagement sequencing can"},
+            {"result in fratricide. Operators must"},
+            {"verify IFF classification before"},
+            {"authorizing fire on any contact.", TextColor::RED},
             {""},
-            {"All contacts start as PENDING."},
-            {"Mode 4 interrogation takes ~2 sec."},
-            {"FRIENDLY = valid squawk received.", TextColor::CYAN},
-            {"HOSTILE  = no squawk response.", TextColor::RED},
-            {"UNKNOWN  = inconclusive/jammed.", TextColor::YELLOW},
+            {"DESTRUCTION NOTICE: Destroy by any"},
+            {"method that will prevent disclosure"},
+            {"of contents or reconstruction."},
         };
         leftDrawer_->addPage(page);
     }
 
-    // Page 2: Patriot Battery
+    // Page 2: AN/TSQ-73 System Description
     {
         BookPage page;
-        page.title = "MIM-104 PATRIOT";
+        page.title = "AN/TSQ-73 MISSILE MINDER";
         page.lines = {
-            {"PATRIOT-1, PATRIOT-2, PATRIOT-3", TextColor::GREEN, true},
+            {"SECTION I. SYSTEM DESCRIPTION", TextColor::YELLOW, true},
             {""},
-            {"Long-range, high-altitude backbone", TextColor::CYAN},
-            {"of the defense. AN/MPQ-53 phased"},
-            {"array tracking radar."},
+            {"1-1. PURPOSE", TextColor::GREEN, true},
+            {"The AN/TSQ-73 is a mobile, tactical"},
+            {"fire distribution center providing"},
+            {"centralized air defense coordination"},
+            {"for composite ADA battalions."},
+            {""},
+            {"1-2. NOMENCLATURE", TextColor::GREEN, true},
+            {"  System:   AN/TSQ-73", TextColor::CYAN},
+            {"  Name:     Missile Minder", TextColor::CYAN},
+            {"  NSN:      5895-01-043-7212", TextColor::CYAN},
+            {"  Mfr:      Litton Industries", TextColor::CYAN},
+            {"            Data Systems Division"},
+            {"  Shelter:  S-280 (on M927 5-ton)"},
+            {"  Power:    MEP-006A (60kW, 440V)"},
+            {""},
+            {"1-3. CAPABILITIES", TextColor::GREEN, true},
+            {"  * Simultaneous track management"},
+            {"    of up to 99 air contacts"},
+            {"  * Automatic IFF Mode 4 interrogation"},
+            {"  * Centralized fire distribution to"},
+            {"    9 organic fire units"},
+            {"  * Dual L-112 processor fire control"},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 3: Console description
+    {
+        BookPage page;
+        page.title = "OPERATOR CONSOLE";
+        page.lines = {
+            {"1-4. CONSOLE LAYOUT", TextColor::GREEN, true},
+            {""},
+            {"The operator station consists of a"},
+            {"portrait-oriented CRT display with"},
+            {"Plan Position Indicator (PPI) radar"},
+            {"presentation, flanked by two control"},
+            {"panels."},
+            {""},
+            {"a. CRT DISPLAY (CENTER)", TextColor::YELLOW, true},
+            {"  P1 green or P39 amber phosphor"},
+            {"  PPI presentation with 360-degree"},
+            {"  rotating sweep, range rings, and"},
+            {"  IFF contact symbology."},
+            {""},
+            {"b. LEFT CONTROL PANEL", TextColor::YELLOW, true},
+            {"  Track management switches"},
+            {"  Numeric keypad (data entry)"},
+            {"  Fire control authorization buttons"},
+            {""},
+            {"c. RIGHT CONTROL PANEL", TextColor::YELLOW, true},
+            {"  Display settings (gain/video)"},
+            {"  Range/MTI configuration"},
+            {"  Grid coordinate thumbwheels (8-digit)"},
+            {"  Cursor control joystick"},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 4: Radar system
+    {
+        BookPage page;
+        page.title = "AN/TPS-43E RADAR";
+        page.lines = {
+            {"1-5. SURVEILLANCE RADAR", TextColor::GREEN, true},
+            {""},
+            {"NOMENCLATURE", TextColor::YELLOW, true},
+            {"  Designation: AN/TPS-43E", TextColor::CYAN},
+            {"  Type:        3D Air Surveillance", TextColor::CYAN},
+            {"  Mfr:         Raytheon Company", TextColor::CYAN},
+            {"  Antenna:     AN/GSS-1 assembly", TextColor::CYAN},
+            {""},
+            {"SPECIFICATIONS", TextColor::YELLOW, true},
+            {"  Max Range:      250 NM (463 km)"},
+            {"  Sweep Rate:     6 RPM"},
+            {"  Altitude:       100,000 ft max"},
+            {"  Range Rings:    5 (equal interval)"},
+            {"  Freq Band:      S-band"},
+            {""},
+            {"OPERATION", TextColor::YELLOW, true},
+            {"The AN/TPS-43E provides long-range"},
+            {"air surveillance and 3-dimensional"},
+            {"track data (range, azimuth, altitude)"},
+            {"to the AN/TSQ-73 via the AN/GSS-1"},
+            {"antenna assembly. Track data is"},
+            {"processed by dual L-112 computers"},
+            {"and presented on the PPI scope."},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 5: PPI Scope / HUD description
+    {
+        BookPage page;
+        page.title = "PPI SCOPE PRESENTATION";
+        page.lines = {
+            {"1-6. DISPLAY SYMBOLOGY", TextColor::GREEN, true},
+            {""},
+            {"CONTACT SYMBOLS", TextColor::YELLOW, true},
+            {"  PENDING  Gray square", TextColor::WHITE},
+            {"           IFF interrogation in progress"},
+            {"  FRIENDLY Blue circle", TextColor::CYAN},
+            {"           Valid Mode 4 squawk received"},
+            {"  HOSTILE  Red diamond", TextColor::RED},
+            {"           No squawk response"},
+            {"  UNKNOWN  Yellow square", TextColor::YELLOW},
+            {"           Jammed / inconclusive"},
+            {""},
+            {"TRACK DATA BLOCK", TextColor::YELLOW, true},
+            {"Each classified track displays:"},
+            {"  * Track ID (TK-001 thru TK-999)"},
+            {"  * Velocity vector (speed + heading)"},
+            {"  * Altitude readout"},
+            {""},
+            {"SCOPE FEATURES", TextColor::YELLOW, true},
+            {"  * Rotating sweep beam (6 RPM)"},
+            {"  * 5 range rings with distance labels"},
+            {"  * Azimuth reference lines"},
+            {"  * Territory defense zone ring"},
+            {"  * Battery position markers"},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 6: MIM-104 PATRIOT
+    {
+        BookPage page;
+        page.title = "MIM-104 PATRIOT SYSTEM";
+        page.lines = {
+            {"SECTION II. FIRE UNITS", TextColor::YELLOW, true},
+            {""},
+            {"2-1. PATRIOT AIR DEFENSE SYSTEM", TextColor::GREEN, true},
+            {""},
+            {"NOMENCLATURE", TextColor::YELLOW, true},
+            {"  Missile:    MIM-104", TextColor::CYAN},
+            {"  Radar:      AN/MPQ-53 Phased Array", TextColor::CYAN},
+            {"  ECS:        AN/MSQ-104", TextColor::CYAN},
+            {"  Launcher:   M901 (4 canisters)", TextColor::CYAN},
+            {"  Mfr:        Raytheon Company", TextColor::CYAN},
             {""},
             {"SPECIFICATIONS", TextColor::YELLOW, true},
             {"  Max Range:     160 km"},
@@ -390,31 +528,60 @@ void IntegratedConsoleScene::populateFireControlBook()
             {"  Altitude:    1,000 - 80,000 ft"},
             {"  Ready Msls:  4 per launcher"},
             {"  Missile Spd: 1,700 m/s (Mach 5)"},
-            {"  Kill Prob:   ~85%"},
+            {"  Kill Prob:   ~85% (single shot)"},
             {"  Reload Time: ~15 sec"},
-            {""},
-            {"BEST USED AGAINST:", TextColor::YELLOW, true},
-            {"  Strategic bombers", TextColor::GREEN},
-            {"  High-altitude fighters", TextColor::GREEN},
-            {"  Stealth aircraft (long range)", TextColor::GREEN},
-            {""},
-            {"CAUTION: Do not waste Patriots on", TextColor::RED},
-            {"low-altitude drones or targets", TextColor::RED},
-            {"within Hawk envelope.", TextColor::RED},
+            {"  Guidance:    TVM (Track Via Missile)"},
+            {"  Warhead:     Blast fragmentation"},
         };
         leftDrawer_->addPage(page);
     }
 
-    // Page 3: Hawk Battery
+    // Page 7: Patriot tactical employment
     {
         BookPage page;
-        page.title = "MIM-23 HAWK";
+        page.title = "PATRIOT EMPLOYMENT";
         page.lines = {
-            {"HAWK-1, HAWK-2, HAWK-3", TextColor::GREEN, true},
+            {"2-2. PATRIOT TACTICAL USE", TextColor::GREEN, true},
             {""},
-            {"Medium-range, low-to-medium altitude", TextColor::CYAN},
-            {"gap filler. AN/MPQ-46 High-Power"},
-            {"Illuminator tracking radar."},
+            {"DEPLOYMENT", TextColor::YELLOW, true},
+            {"  PATRIOT-1  North    (35 km)"},
+            {"  PATRIOT-2  SE       (35 km)"},
+            {"  PATRIOT-3  SW       (35 km)"},
+            {"  Triangle formation covering all"},
+            {"  high-altitude approach corridors."},
+            {""},
+            {"ENGAGEMENT PROCEDURE", TextColor::YELLOW, true},
+            {"  1. Verify track IFF: HOSTILE", TextColor::GREEN},
+            {"  2. Confirm altitude > 1,000 ft", TextColor::GREEN},
+            {"  3. Select track on PPI scope", TextColor::GREEN},
+            {"  4. Press 1, 2, or 3 to assign", TextColor::GREEN},
+            {"  5. Battery engages autonomously", TextColor::GREEN},
+            {""},
+            {"RESTRICTIONS", TextColor::RED, true},
+            {"  * DO NOT engage below 1,000 ft"},
+            {"  * DO NOT engage within 3 km"},
+            {"  * DO NOT waste on drone-class"},
+            {"    targets within Hawk envelope", TextColor::RED},
+            {"  * Conserve missiles for high-value"},
+            {"    threats (bombers, stealth)", TextColor::RED},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 8: MIM-23 HAWK
+    {
+        BookPage page;
+        page.title = "MIM-23 HAWK SYSTEM";
+        page.lines = {
+            {"2-3. IMPROVED HAWK AIR DEFENSE", TextColor::GREEN, true},
+            {""},
+            {"NOMENCLATURE", TextColor::YELLOW, true},
+            {"  Missile:    MIM-23B I-HAWK", TextColor::CYAN},
+            {"  Acq Radar:  AN/MPQ-50 CWAR", TextColor::CYAN},
+            {"  Trk Radar:  AN/MPQ-46 HPI", TextColor::CYAN},
+            {"  Illuminator:AN/MPQ-57 ROR", TextColor::CYAN},
+            {"  Launcher:   M192 (3 rails)", TextColor::CYAN},
+            {"  Mfr:        Raytheon Company", TextColor::CYAN},
             {""},
             {"SPECIFICATIONS", TextColor::YELLOW, true},
             {"  Max Range:     45 km"},
@@ -423,74 +590,273 @@ void IntegratedConsoleScene::populateFireControlBook()
             {"  Ready Msls:   3 per launcher"},
             {"  Total Stock:  33 per battery"},
             {"  Missile Spd:  900 m/s (Mach 2.7)"},
-            {"  Kill Prob:    ~75%"},
+            {"  Kill Prob:    ~75% (single shot)"},
             {"  Reload Time:  ~10 sec"},
-            {""},
-            {"BEST USED AGAINST:", TextColor::YELLOW, true},
-            {"  Tactical bombers", TextColor::GREEN},
-            {"  Fighter/attack aircraft", TextColor::GREEN},
-            {"  Medium-altitude threats", TextColor::GREEN},
+            {"  Guidance:     Semi-active radar homing"},
+            {"  Warhead:      HE blast fragmentation"},
         };
         leftDrawer_->addPage(page);
     }
 
-    // Page 4: Javelin Platoon
+    // Page 9: Hawk tactical employment
+    {
+        BookPage page;
+        page.title = "HAWK EMPLOYMENT";
+        page.lines = {
+            {"2-4. HAWK TACTICAL USE", TextColor::GREEN, true},
+            {""},
+            {"DEPLOYMENT", TextColor::YELLOW, true},
+            {"  HAWK-1  NE    (20 km)"},
+            {"  HAWK-2  East  (20 km)"},
+            {"  HAWK-3  South (20 km)"},
+            {"  Gap-filler ring between Patriot"},
+            {"  and inner defense perimeter."},
+            {""},
+            {"ENGAGEMENT PROCEDURE", TextColor::YELLOW, true},
+            {"  1. Verify track IFF: HOSTILE", TextColor::GREEN},
+            {"  2. Confirm within Hawk envelope", TextColor::GREEN},
+            {"  3. Select track on PPI scope", TextColor::GREEN},
+            {"  4. Press 4, 5, or 6 to assign", TextColor::GREEN},
+            {"  5. HPI illuminates, missile fires", TextColor::GREEN},
+            {""},
+            {"BEST EMPLOYED AGAINST", TextColor::YELLOW, true},
+            {"  * Tactical bombers (low-med alt)", TextColor::GREEN},
+            {"  * Fighter/attack aircraft", TextColor::GREEN},
+            {"  * Targets too low for Patriot", TextColor::GREEN},
+            {""},
+            {"NOTE: Hawk battery has deepest ammo", TextColor::CYAN},
+            {"stock (33 msls). Preferred for", TextColor::CYAN},
+            {"sustained engagement.", TextColor::CYAN},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 10: FGM-148 JAVELIN
     {
         BookPage page;
         page.title = "FGM-148 JAVELIN MANPADS";
         page.lines = {
-            {"JAVELIN-1, JAVELIN-2, JAVELIN-3", TextColor::GREEN, true},
+            {"2-5. JAVELIN MAN-PORTABLE SYSTEM", TextColor::GREEN, true},
             {""},
-            {"Last line of defense. IR-guided,", TextColor::CYAN},
-            {"fire-and-forget. No radar signature."},
-            {"CLU IR/FLIR seeker."},
+            {"NOMENCLATURE", TextColor::YELLOW, true},
+            {"  Missile:    FGM-148 Javelin", TextColor::CYAN},
+            {"  CLU:        Command Launch Unit", TextColor::CYAN},
+            {"  Seeker:     IR/FLIR (dual-band)", TextColor::CYAN},
+            {"  Mfr:        Javelin Joint Venture", TextColor::CYAN},
+            {"              Raytheon / Lockheed Martin", TextColor::CYAN},
             {""},
             {"SPECIFICATIONS", TextColor::YELLOW, true},
-            {"  Max Range:     55 km (game)"},
+            {"  Max Range:     55 km (sim value)"},
             {"  Min Range:      0.5 km"},
             {"  Altitude:     GND - 15,000 ft"},
-            {"  Ready Msls:   2"},
+            {"  Ready Msls:   2 per team"},
             {"  Missile Spd:  300 m/s"},
-            {"  Kill Prob:    ~65%"},
+            {"  Kill Prob:    ~65% (single shot)"},
             {"  Reload Time:  ~20 sec"},
+            {"  Guidance:     IR fire-and-forget"},
+            {"  Warhead:      Tandem shaped charge"},
             {""},
-            {"KEY ADVANTAGE:", TextColor::YELLOW, true},
-            {"IR guidance means stealth aircraft", TextColor::GREEN},
-            {"gain NO benefit against Javelin.", TextColor::GREEN},
-            {"The seeker tracks heat, not radar.", TextColor::GREEN},
-            {""},
-            {"Use Javelin for leakers that", TextColor::RED},
-            {"penetrate the outer ring.", TextColor::RED},
+            {"KEY: IR guidance defeats stealth.", TextColor::GREEN, true},
+            {"Stealth RCS reduction has ZERO", TextColor::GREEN},
+            {"effect against Javelin CLU seeker.", TextColor::GREEN},
         };
         leftDrawer_->addPage(page);
     }
 
-    // Page 5: Scoring
+    // Page 11: Javelin tactical employment
     {
         BookPage page;
-        page.title = "SCORING & GAME END";
+        page.title = "JAVELIN EMPLOYMENT";
         page.lines = {
-            {"SCORING", TextColor::YELLOW, true},
+            {"2-6. JAVELIN TACTICAL USE", TextColor::GREEN, true},
             {""},
+            {"DEPLOYMENT", TextColor::YELLOW, true},
+            {"  JAVELIN-1  NW    (8 km)"},
+            {"  JAVELIN-2  South (8 km)"},
+            {"  JAVELIN-3  SW    (8 km)"},
+            {"  Inner ring, last line of defense"},
+            {"  before territory penetration."},
+            {""},
+            {"ENGAGEMENT PROCEDURE", TextColor::YELLOW, true},
+            {"  1. Verify track IFF: HOSTILE", TextColor::GREEN},
+            {"  2. Confirm low-altitude leaker", TextColor::GREEN},
+            {"  3. Select track on PPI scope", TextColor::GREEN},
+            {"  4. Press 7, 8, or 9 to assign", TextColor::GREEN},
+            {"  5. CLU acquires IR lock, fires", TextColor::GREEN},
+            {""},
+            {"WARNING", TextColor::RED, true},
+            {"Javelin has limited missile stock", TextColor::RED},
+            {"(2 ready rounds). Reserve for", TextColor::RED},
+            {"confirmed hostile leakers only.", TextColor::RED},
+            {"Do NOT expend on distant targets", TextColor::RED},
+            {"that Patriot or Hawk can engage.", TextColor::RED},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 12: Fire distribution procedure
+    {
+        BookPage page;
+        page.title = "FIRE DISTRIBUTION";
+        page.lines = {
+            {"SECTION III. PROCEDURES", TextColor::YELLOW, true},
+            {""},
+            {"3-1. ENGAGEMENT SEQUENCE", TextColor::GREEN, true},
+            {""},
+            {"  CONTACT DETECTED", TextColor::CYAN, true},
+            {"       |"},
+            {"       v"},
+            {"  IFF INTERROGATION (2 sec)", TextColor::CYAN, true},
+            {"       |"},
+            {"   +---+---+---+"},
+            {"   |       |       |", TextColor::WHITE},
+            {" FRIEND  HOST   UNKN", TextColor::WHITE},
+            {" (blue)  (red)  (yel)", TextColor::WHITE},
+            {"   |       |       |"},
+            {"  HOLD   EVAL   MONITOR"},
+            {"          |"},
+            {"          v"},
+            {"  SELECT BATTERY", TextColor::YELLOW, true},
+            {"  (by range/alt match)"},
+            {"       |"},
+            {"       v"},
+            {"  ASSIGN (key 1-9)", TextColor::GREEN, true},
+            {"       |"},
+            {"       v"},
+            {"  SPLASH / MISS", TextColor::RED, true},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 13: Battery selection guide
+    {
+        BookPage page;
+        page.title = "BATTERY SELECTION GUIDE";
+        page.lines = {
+            {"3-2. WEAPON-TARGET MATCHING", TextColor::GREEN, true},
+            {""},
+            {"DECISION MATRIX", TextColor::YELLOW, true},
+            {""},
+            {"HIGH ALT + LONG RANGE:", TextColor::WHITE, true},
+            {"  -> PATRIOT (keys 1-3)", TextColor::GREEN},
+            {"  Strategic bombers, high fighters"},
+            {""},
+            {"MED ALT + MED RANGE:", TextColor::WHITE, true},
+            {"  -> HAWK (keys 4-6)", TextColor::GREEN},
+            {"  Tactical bombers, attack jets"},
+            {""},
+            {"LOW ALT + SHORT RANGE:", TextColor::WHITE, true},
+            {"  -> JAVELIN (keys 7-9)", TextColor::GREEN},
+            {"  Leakers, drones, stealth"},
+            {""},
+            {"STEALTH TARGETS:", TextColor::WHITE, true},
+            {"  -> JAVELIN preferred (IR defeats", TextColor::GREEN},
+            {"     RCS reduction)", TextColor::GREEN},
+            {"  -> PATRIOT at long range if high", TextColor::GREEN},
+            {""},
+            {"RULE: Never use Patriot when Hawk", TextColor::RED},
+            {"can reach. Never use Hawk when", TextColor::RED},
+            {"Javelin can reach.", TextColor::RED},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 14: IFF Procedures
+    {
+        BookPage page;
+        page.title = "IFF PROCEDURES";
+        page.lines = {
+            {"3-3. IDENTIFICATION FRIEND OR FOE", TextColor::GREEN, true},
+            {""},
+            {"MODE 4 INTERROGATION", TextColor::YELLOW, true},
+            {"AN/TSQ-73 automatically transmits"},
+            {"Mode 4 crypto challenge to each new"},
+            {"contact. Response time: ~2 seconds."},
+            {""},
+            {"SQUAWK PRINCIPLE", TextColor::YELLOW, true},
+            {"Friendly aircraft carry IFF"},
+            {"transponders that respond (squawk)"},
+            {"with valid authentication codes.", TextColor::CYAN},
+            {"Hostile aircraft have no valid"},
+            {"transponder. Absence of squawk =", TextColor::RED},
+            {"HOSTILE classification.", TextColor::RED},
+            {""},
+            {"IFF ERROR RATES BY LEVEL", TextColor::YELLOW, true},
+            {"  Level 1:  0% error", TextColor::GREEN},
+            {"  Level 2:  0% error", TextColor::GREEN},
+            {"  Level 3:  5% error", TextColor::YELLOW},
+            {"  Level 4: 10% error", TextColor::YELLOW},
+            {"  Level 5: 20% error", TextColor::RED},
+            {""},
+            {"CAUTION: At high error rates, cross-", TextColor::RED},
+            {"reference speed, altitude, heading", TextColor::RED},
+            {"before engaging UNKNOWN contacts.", TextColor::RED},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 15: Scoring
+    {
+        BookPage page;
+        page.title = "SCORING";
+        page.lines = {
+            {"3-4. SCORING SYSTEM", TextColor::GREEN, true},
+            {""},
+            {"POSITIVE ACTIONS", TextColor::YELLOW, true},
             {"  Hostile destroyed:  +100 base", TextColor::GREEN},
-            {"    x type multiplier"},
+            {"    x aircraft type multiplier"},
             {"  First-shot kill:    2x bonus", TextColor::GREEN},
+            {"  Level bonus:        varies", TextColor::GREEN},
+            {""},
+            {"NEGATIVE ACTIONS", TextColor::YELLOW, true},
             {"  Hostile penetrates: -200", TextColor::RED},
-            {"  Missile wasted:     -25", TextColor::YELLOW},
+            {"  Missile wasted:      -25", TextColor::YELLOW},
             {"  Friendly destroyed: GAME OVER", TextColor::RED, true},
             {""},
-            {"GAME OVER CONDITIONS", TextColor::YELLOW, true},
-            {""},
+            {"GAME END CONDITIONS", TextColor::YELLOW, true},
             {"  * Friendly aircraft destroyed", TextColor::RED},
             {"  * Score drops below -2000", TextColor::RED},
+            {"  * 3+ batteries destroyed", TextColor::RED},
+            {"    (degraded play -> early end)"},
             {""},
-            {"LEVEL COMPLETE", TextColor::YELLOW, true},
+            {"LEVEL ADVANCEMENT", TextColor::YELLOW, true},
+            {"Destroy the required number of"},
+            {"hostiles to advance. Complete all"},
+            {"5 levels for MISSION COMPLETE.", TextColor::GREEN},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 16: Credits
+    {
+        BookPage page;
+        page.title = "ACKNOWLEDGMENTS";
+        page.lines = {
+            {"SYSTEMS & EQUIPMENT", TextColor::YELLOW, true},
             {""},
-            {"Destroy the target number of"},
-            {"hostiles to advance to the next"},
-            {"difficulty level."},
+            {"AN/TSQ-73 Missile Minder", TextColor::GREEN, true},
+            {"  Litton Industries"},
+            {"  Data Systems Division"},
+            {"  Van Nuys, California"},
             {""},
-            {"Press R to restart at any time.", TextColor::CYAN},
+            {"AN/TPS-43E Surveillance Radar", TextColor::GREEN, true},
+            {"  Raytheon Company"},
+            {"  Equipment Division"},
+            {"  Wayland, Massachusetts"},
+            {""},
+            {"MIM-104 Patriot Missile System", TextColor::GREEN, true},
+            {"  Raytheon Company"},
+            {"  Missile Systems Division"},
+            {""},
+            {"MIM-23 Improved HAWK System", TextColor::GREEN, true},
+            {"  Raytheon Company"},
+            {""},
+            {"FGM-148 Javelin System", TextColor::GREEN, true},
+            {"  Javelin Joint Venture"},
+            {"  Raytheon / Lockheed Martin"},
+            {""},
+            {"United States Army", TextColor::YELLOW, true},
+            {"Air Defense Artillery Branch"},
         };
         leftDrawer_->addPage(page);
     }
@@ -498,128 +864,410 @@ void IntegratedConsoleScene::populateFireControlBook()
 
 void IntegratedConsoleScene::populateSettingsBook()
 {
-    // Page 1: Controls overview
+    // Page 1: Settings TM cover page
     {
         BookPage page;
-        page.title = "OPERATOR CONTROLS";
+        page.title = "TM 9-1430-600-10-2";
         page.lines = {
-            {"RADAR SCOPE", TextColor::YELLOW, true},
+            {"TECHNICAL MANUAL", TextColor::YELLOW, true},
             {""},
-            {"Click on radar blip to select track."},
-            {"Selected track highlighted with"},
-            {"bracket indicator."},
+            {"OPERATOR INSTRUCTIONS", TextColor::YELLOW, true},
             {""},
-            {"KEYBOARD COMMANDS", TextColor::YELLOW, true},
+            {"CONSOLE OPERATION &", TextColor::GREEN, true},
+            {"TACTICAL PROCEDURES", TextColor::GREEN, true},
+            {"AN/TSQ-73 MISSILE MINDER", TextColor::GREEN, true},
             {""},
-            {"  1-9  Assign battery to track", TextColor::GREEN},
-            {"  F    Authorize fire", TextColor::GREEN},
-            {"  A    Abort engagement", TextColor::GREEN},
-            {"  P    Toggle CRT phosphor color", TextColor::GREEN},
-            {"  R    Restart game", TextColor::GREEN},
+            {"HEADQUARTERS,", TextColor::WHITE},
+            {"DEPARTMENT OF THE ARMY", TextColor::WHITE},
             {""},
-            {"DISPLAY OPTIONS", TextColor::YELLOW, true},
+            {"This manual provides operating"},
+            {"instructions, display settings,"},
+            {"scenario configurations, and threat"},
+            {"identification procedures for the"},
+            {"AN/TSQ-73 fire distribution console."},
             {""},
-            {"  P1 GREEN  Standard radar CRT", TextColor::GREEN},
-            {"  P39 AMBER Warm amber phosphor", TextColor::YELLOW},
-            {""},
-            {"Press P to cycle between phosphor"},
-            {"display modes."},
+            {"TABLE OF CONTENTS", TextColor::YELLOW, true},
+            {"  Sec I.   Console Operation"},
+            {"  Sec II.  Display Settings"},
+            {"  Sec III. Scenario Levels"},
+            {"  Sec IV.  Threat Identification"},
+            {"  Sec V.   Defense Zone Layout"},
+            {"  Sec VI.  Communications"},
         };
         rightDrawer_->addPage(page);
     }
 
-    // Page 2: Level descriptions
+    // Page 2: Console operation
     {
         BookPage page;
-        page.title = "SCENARIO LEVELS";
+        page.title = "CONSOLE OPERATION";
         page.lines = {
-            {"LEVEL 1 - TRAINING", TextColor::GREEN, true},
-            {"  3 max contacts, slow spawn rate"},
-            {"  No stealth, no IFF errors"},
-            {"  Objective: Destroy 5 hostiles"},
+            {"SECTION I. OPERATOR CONTROLS", TextColor::YELLOW, true},
             {""},
-            {"LEVEL 2 - ALERT", TextColor::GREEN, true},
-            {"  5 max contacts, faster spawns"},
-            {"  No stealth, no IFF errors"},
-            {"  Objective: Destroy 10 hostiles"},
+            {"1-1. TRACK SELECTION", TextColor::GREEN, true},
+            {"Click on radar blip to select a"},
+            {"contact. Selected track displays"},
+            {"bracket indicator and data block."},
             {""},
-            {"LEVEL 3 - ENGAGEMENT", TextColor::YELLOW, true},
-            {"  8 max contacts, rapid spawns"},
-            {"  5% IFF error rate"},
-            {"  Objective: Destroy 18 hostiles"},
+            {"1-2. BATTERY ASSIGNMENT", TextColor::GREEN, true},
+            {"  KEY  BATTERY        RANGE", TextColor::CYAN, true},
+            {"  1    PATRIOT-1      160km", TextColor::GREEN},
+            {"  2    PATRIOT-2      160km", TextColor::GREEN},
+            {"  3    PATRIOT-3      160km", TextColor::GREEN},
+            {"  4    HAWK-1          45km", TextColor::GREEN},
+            {"  5    HAWK-2          45km", TextColor::GREEN},
+            {"  6    HAWK-3          45km", TextColor::GREEN},
+            {"  7    JAVELIN-1       55km", TextColor::GREEN},
+            {"  8    JAVELIN-2       55km", TextColor::GREEN},
+            {"  9    JAVELIN-3       55km", TextColor::GREEN},
             {""},
-            {"LEVEL 4 - ESCALATION", TextColor::YELLOW, true},
-            {"  10 max contacts, heavy pressure"},
-            {"  Stealth enabled, 10% IFF errors"},
-            {"  Objective: Destroy 25 hostiles"},
-            {""},
-            {"LEVEL 5 - FINAL STAND", TextColor::RED, true},
-            {"  15 max contacts, overwhelming"},
-            {"  Stealth enabled, 20% IFF errors"},
-            {"  Objective: Destroy 40 hostiles"},
+            {"1-3. ADDITIONAL COMMANDS", TextColor::GREEN, true},
+            {"  F  Authorize fire", TextColor::GREEN},
+            {"  A  Abort engagement", TextColor::GREEN},
+            {"  P  Toggle CRT phosphor color", TextColor::GREEN},
+            {"  R  Restart game", TextColor::GREEN},
         };
         rightDrawer_->addPage(page);
     }
 
-    // Page 3: Defense layout
+    // Page 3: Display settings
     {
         BookPage page;
-        page.title = "DEFENSE ZONE LAYOUT";
+        page.title = "DISPLAY SETTINGS";
         page.lines = {
-            {"BATTALION DEPLOYMENT", TextColor::YELLOW, true},
+            {"SECTION II. CRT CONFIGURATION", TextColor::YELLOW, true},
             {""},
-            {"Territory radius: 25 km", TextColor::CYAN},
-            {"Total footprint: ~75 km across"},
+            {"2-1. PHOSPHOR SELECTION", TextColor::GREEN, true},
+            {"Press P to toggle between:", TextColor::WHITE},
             {""},
-            {"OUTER RING (35 km)", TextColor::GREEN, true},
-            {"  PATRIOT-1  North"},
-            {"  PATRIOT-2  Southeast"},
-            {"  PATRIOT-3  Southwest"},
+            {"  P1 GREEN PHOSPHOR", TextColor::GREEN, true},
+            {"  Standard radar CRT. High contrast"},
+            {"  with good dark-room visibility."},
+            {"  Preferred for long-duration ops."},
             {""},
-            {"MIDDLE RING (20 km)", TextColor::GREEN, true},
-            {"  HAWK-1  Northeast"},
-            {"  HAWK-2  East"},
-            {"  HAWK-3  South"},
+            {"  P39 AMBER PHOSPHOR", TextColor::YELLOW, true},
+            {"  Warm amber/orange presentation."},
+            {"  Reduced eye strain under extended"},
+            {"  operations. Historically used in"},
+            {"  some AN/TSQ-73 variants."},
             {""},
-            {"INNER RING (8 km)", TextColor::GREEN, true},
-            {"  JAVELIN-1  Northwest"},
-            {"  JAVELIN-2  South"},
-            {"  JAVELIN-3  Southwest"},
+            {"2-2. GAIN/VIDEO CONTROLS", TextColor::GREEN, true},
+            {"Right panel rotary knobs adjust:"},
+            {"  * GAIN - Receiver sensitivity"},
+            {"  * VIDEO - Signal amplification"},
+            {"  * MTI - Moving target indication"},
+            {"  * RANGE - Display scale factor"},
             {""},
-            {"HQ: AN/TSQ-73 at center", TextColor::CYAN},
-            {"Radar: AN/TPS-43E (250 NM range)"},
+            {"2-3. GRID COORDINATES", TextColor::GREEN, true},
+            {"8-digit thumbwheels set UTM grid."},
         };
         rightDrawer_->addPage(page);
     }
 
-    // Page 4: Threat types
+    // Page 4: PPI scope reference
+    {
+        BookPage page;
+        page.title = "PPI SCOPE REFERENCE";
+        page.lines = {
+            {"2-4. SCOPE PRESENTATION", TextColor::GREEN, true},
+            {""},
+            {"The PPI (Plan Position Indicator)"},
+            {"displays a top-down view of the"},
+            {"defended airspace."},
+            {""},
+            {"SWEEP BEAM", TextColor::YELLOW, true},
+            {"  Clockwise rotation at 6 RPM."},
+            {"  Contacts illuminate as the sweep"},
+            {"  passes their azimuth position,"},
+            {"  then fade with phosphor decay."},
+            {""},
+            {"RANGE RINGS", TextColor::YELLOW, true},
+            {"  5 concentric rings at equal"},
+            {"  intervals. Full scale = 463 km"},
+            {"  (250 NM radar max range)."},
+            {""},
+            {"TERRITORY ZONE", TextColor::YELLOW, true},
+            {"  Dashed circle at 25 km radius.", TextColor::CYAN},
+            {"  Hostile penetration of this zone"},
+            {"  results in -200 point penalty."},
+            {""},
+            {"BATTERY MARKERS", TextColor::YELLOW, true},
+            {"  Fixed position icons showing the"},
+            {"  location of each fire unit."},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 5: Scenario levels
+    {
+        BookPage page;
+        page.title = "SCENARIO LEVELS 1-3";
+        page.lines = {
+            {"SECTION III. TACTICAL SCENARIOS", TextColor::YELLOW, true},
+            {""},
+            {"LEVEL 1: TRAINING EXERCISE", TextColor::GREEN, true},
+            {"  Max contacts:    3 simultaneous"},
+            {"  Spawn rate:      8-15 sec"},
+            {"  Speed:           0.7x normal"},
+            {"  Friendly ratio:  30%"},
+            {"  Stealth:         None"},
+            {"  IFF errors:      0%"},
+            {"  Duration:        2 minutes"},
+            {"  Objective:       Destroy 5 hostiles"},
+            {""},
+            {"LEVEL 2: ELEVATED ALERT", TextColor::GREEN, true},
+            {"  Max contacts:    5 simultaneous"},
+            {"  Spawn rate:      6-12 sec"},
+            {"  Speed:           0.85x normal"},
+            {"  Friendly ratio:  25%"},
+            {"  Stealth:         None"},
+            {"  IFF errors:      0%"},
+            {"  Duration:        2.5 minutes"},
+            {"  Objective:       Destroy 10 hostiles"},
+            {""},
+            {"LEVEL 3: ACTIVE ENGAGEMENT", TextColor::YELLOW, true},
+            {"  Max contacts:    8 simultaneous"},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 6: Scenario levels continued
+    {
+        BookPage page;
+        page.title = "SCENARIO LEVELS 3-5";
+        page.lines = {
+            {"LEVEL 3 (continued)", TextColor::YELLOW, true},
+            {"  Spawn rate:      4-9 sec"},
+            {"  Speed:           1.0x normal"},
+            {"  Friendly ratio:  20%"},
+            {"  Stealth:         None"},
+            {"  IFF errors:      5%"},
+            {"  Duration:        3 minutes"},
+            {"  Objective:       Destroy 18 hostiles"},
+            {""},
+            {"LEVEL 4: FORCE ESCALATION", TextColor::YELLOW, true},
+            {"  Max contacts:    10 simultaneous"},
+            {"  Spawn rate:      3-7 sec"},
+            {"  Speed:           1.15x normal"},
+            {"  Friendly ratio:  15%"},
+            {"  Stealth:         ENABLED", TextColor::RED},
+            {"  IFF errors:      10%"},
+            {"  Duration:        3.5 minutes"},
+            {"  Objective:       Destroy 25 hostiles"},
+            {""},
+            {"LEVEL 5: FINAL STAND", TextColor::RED, true},
+            {"  Max contacts:    15 simultaneous"},
+            {"  Spawn rate:      2-5 sec"},
+            {"  Speed:           1.3x normal"},
+            {"  Friendly ratio:  10%"},
+            {"  Stealth:         ENABLED", TextColor::RED},
+            {"  IFF errors:      20%", TextColor::RED},
+            {"  Duration:        5 minutes"},
+            {"  Objective:       Destroy 40 hostiles"},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 7: Threat identification
     {
         BookPage page;
         page.title = "THREAT IDENTIFICATION";
         page.lines = {
-            {"HOSTILE AIRCRAFT", TextColor::RED, true},
+            {"SECTION IV. THREAT AIRCRAFT", TextColor::YELLOW, true},
             {""},
-            {"  Strategic Bomber", TextColor::WHITE},
-            {"    High alt, fast, large RCS"},
-            {"  Fighter/Attack"},
-            {"    Fast, agile, medium alt"},
-            {"  Tactical Bomber"},
-            {"    Low-med alt, moderate speed"},
-            {"  Recon Drone"},
-            {"    Small, slow, hard to classify"},
-            {"  Attack Drone"},
-            {"    Small, may carry ordnance"},
-            {"  Stealth Fighter"},
-            {"    Reduced RCS, harder to detect"},
+            {"STRATEGIC BOMBER", TextColor::RED, true},
+            {"  Profile: High altitude, fast"},
+            {"  RCS:     Large (easy to detect)"},
+            {"  Danger:  HIGH - carries ordnance"},
+            {"  Counter: PATRIOT at range"},
+            {""},
+            {"FIGHTER / ATTACK", TextColor::RED, true},
+            {"  Profile: Fast, agile, med alt"},
+            {"  RCS:     Medium"},
+            {"  Danger:  HIGH - closes quickly"},
+            {"  Counter: HAWK or PATRIOT"},
+            {""},
+            {"TACTICAL BOMBER", TextColor::RED, true},
+            {"  Profile: Low-med alt, moderate"},
+            {"  RCS:     Medium-large"},
+            {"  Danger:  MEDIUM"},
+            {"  Counter: HAWK preferred"},
+            {""},
+            {"RECON DRONE", TextColor::YELLOW, true},
+            {"  Profile: Small, slow"},
+            {"  RCS:     Small (hard to classify)"},
+            {"  Danger:  LOW (no ordnance)"},
+            {"  Counter: JAVELIN or ignore"},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 8: Threat identification continued
+    {
+        BookPage page;
+        page.title = "THREATS (CONTINUED)";
+        page.lines = {
+            {"ATTACK DRONE", TextColor::RED, true},
+            {"  Profile: Small, slow-medium"},
+            {"  RCS:     Small"},
+            {"  Danger:  MEDIUM (may have ordnance)"},
+            {"  Counter: JAVELIN or HAWK"},
+            {""},
+            {"STEALTH FIGHTER", TextColor::RED, true},
+            {"  Profile: Med alt, fast"},
+            {"  RCS:     VERY LOW", TextColor::RED},
+            {"  Danger:  EXTREME"},
+            {"  IFF:     30% chance UNKNOWN result"},
+            {"  Counter: JAVELIN (IR defeats RCS)", TextColor::GREEN},
             {""},
             {"DO NOT ENGAGE", TextColor::RED, true},
             {""},
-            {"  Civilian Airliner", TextColor::RED},
-            {"    -1000 pts / GAME OVER"},
-            {"  Friendly Military", TextColor::RED},
-            {"    GAME OVER on engagement"},
+            {"CIVILIAN AIRLINER", TextColor::RED, true},
+            {"  IFF:     Should show FRIENDLY"},
+            {"  Penalty: -1000 pts"},
+            {"  Result:  GAME OVER", TextColor::RED},
             {""},
-            {"ALWAYS verify IFF before firing!", TextColor::YELLOW, true},
+            {"FRIENDLY MILITARY", TextColor::RED, true},
+            {"  IFF:     Should show FRIENDLY"},
+            {"  Result:  IMMEDIATE GAME OVER", TextColor::RED},
+            {""},
+            {"VERIFY IFF BEFORE EVERY SHOT.", TextColor::RED, true},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 9: Defense zone layout
+    {
+        BookPage page;
+        page.title = "DEFENSE ZONE LAYOUT";
+        page.lines = {
+            {"SECTION V. BATTALION DEPLOYMENT", TextColor::YELLOW, true},
+            {""},
+            {"Total footprint: ~75 km across", TextColor::CYAN},
+            {"Territory radius: 25 km", TextColor::CYAN},
+            {""},
+            {"        N (0 deg)", TextColor::GREEN},
+            {"          |"},
+            {"    PAT-1 (35km)"},
+            {"     /          \\"},
+            {"  JAV-1(8)   HAWK-1(20)"},
+            {"    |              |"},
+            {"    |  [AN/TSQ-73] |"},
+            {"    |   (center)   |"},
+            {"    |  [==25km==]  |"},
+            {"    |              |"},
+            {"  JAV-3(8)   HAWK-2(20)"},
+            {"     \\          /"},
+            {"  PAT-3(35) HAWK-3(20)"},
+            {"          |"},
+            {"       JAV-2(8)"},
+            {"          |"},
+            {"        S (180 deg)", TextColor::GREEN},
+            {""},
+            {"Batteries OUTSIDE territory to"},
+            {"intercept before penetration.", TextColor::YELLOW},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 10: Communications
+    {
+        BookPage page;
+        page.title = "COMMUNICATIONS";
+        page.lines = {
+            {"SECTION VI. COMM SYSTEMS", TextColor::YELLOW, true},
+            {""},
+            {"6-1. DATA LINKS", TextColor::GREEN, true},
+            {"AN/TSQ-73 communicates with fire"},
+            {"batteries via dedicated circuits:"},
+            {""},
+            {"  * Point-to-point microwave", TextColor::CYAN},
+            {"    Directional site-to-site links"},
+            {"  * SATCOM backup", TextColor::CYAN},
+            {"    Extended range / terrain blocked"},
+            {"  * Voice circuits", TextColor::CYAN},
+            {"    Tactical coordination"},
+            {"  * Digital data circuits", TextColor::CYAN},
+            {"    Track data, engagement commands,"},
+            {"    and battery status reporting"},
+            {"    via L-112 processors"},
+            {""},
+            {"6-2. AUTONOMOUS OPERATIONS", TextColor::GREEN, true},
+            {"When HQ displaces, comm links go"},
+            {"down. Batteries switch to autonomous"},
+            {"engagement using organic radars:", TextColor::YELLOW},
+            {"  Patriot: AN/MPQ-53"},
+            {"  Hawk:    AN/MPQ-46 + AN/MPQ-50"},
+            {"  Javelin: CLU IR/FLIR (no radar)"},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 11: S-280 shelter description
+    {
+        BookPage page;
+        page.title = "S-280 SHELTER";
+        page.lines = {
+            {"SECTION VII. EQUIPMENT", TextColor::YELLOW, true},
+            {""},
+            {"7-1. S-280 COMMAND SHELTER", TextColor::GREEN, true},
+            {""},
+            {"The S-280 is a climate-controlled"},
+            {"aluminum shelter mounted on an"},
+            {"M927 5-ton cargo truck. Interior"},
+            {"houses two complete operator"},
+            {"consoles with PPI scopes."},
+            {""},
+            {"SHELTER SPECIFICATIONS", TextColor::YELLOW, true},
+            {"  Length:     12 ft (3.66m)"},
+            {"  Width:      8 ft (2.44m)"},
+            {"  Height:     6 ft (1.83m)"},
+            {"  Weight:   ~4,500 lbs (loaded)"},
+            {"  Power:    440V 3-phase from"},
+            {"            MEP-006A 60kW genset"},
+            {"  HVAC:     Integral A/C and heat"},
+            {""},
+            {"INTERIOR LAYOUT", TextColor::YELLOW, true},
+            {"  * Two operator stations (L & R)"},
+            {"  * Equipment racks (rear wall)"},
+            {"  * Writing bench w/ plexiglass"},
+            {"  * Emergency exit hatch (rear)"},
+            {"  * Overhead red night-ops lighting"},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 12: Credits
+    {
+        BookPage page;
+        page.title = "CREDITS & ACKNOWLEDGMENTS";
+        page.lines = {
+            {"SIMULATION CREDITS", TextColor::YELLOW, true},
+            {""},
+            {"AN/TSQ-73 Missile Minder", TextColor::GREEN, true},
+            {"Command Simulation"},
+            {""},
+            {"(c) 2026 Imagery Business Systems, LLC"},
+            {"All Rights Reserved."},
+            {""},
+            {"SYSTEM MANUFACTURERS", TextColor::YELLOW, true},
+            {""},
+            {"Litton Industries", TextColor::CYAN, true},
+            {"  Data Systems Division"},
+            {"  AN/TSQ-73 Fire Distribution Center"},
+            {""},
+            {"Raytheon Company", TextColor::CYAN, true},
+            {"  AN/TPS-43E Surveillance Radar"},
+            {"  MIM-104 Patriot Missile System"},
+            {"  MIM-23 Improved HAWK System"},
+            {""},
+            {"Raytheon / Lockheed Martin", TextColor::CYAN, true},
+            {"  Javelin Joint Venture"},
+            {"  FGM-148 Javelin Weapon System"},
+            {""},
+            {"United States Army", TextColor::YELLOW, true},
+            {"  Air Defense Artillery Branch"},
+            {"  \"First To Fire\""},
         };
         rightDrawer_->addPage(page);
     }
