@@ -62,6 +62,7 @@ bool ConsoleFrame::init(float scopeRadius)
     bezelH_ = panelH_ + 90.0f;                 // panels + top indicators + bottom bar
 
     // Create draw layers
+    backgroundNode_ = cocos2d::DrawNode::create();
     housingNode_ = cocos2d::DrawNode::create();
     displayNode_ = cocos2d::DrawNode::create();
     panelNode_   = cocos2d::DrawNode::create();
@@ -69,6 +70,7 @@ bool ConsoleFrame::init(float scopeRadius)
     dynamicNode_ = cocos2d::DrawNode::create();
     labelNode_   = cocos2d::Node::create();
 
+    addChild(backgroundNode_, -1);
     addChild(housingNode_,  0);
     addChild(displayNode_,  1);
     addChild(panelNode_,    2);
@@ -289,7 +291,7 @@ void ConsoleFrame::drawShelterBackground()
     float sceneH = 600.0f;
 
     // Overall dark interior
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, -sceneH),
         cocos2d::Vec2(sceneW, sceneH),
         cocos2d::Color4F(0.04f, 0.05f, 0.04f, 1.0f));
@@ -313,19 +315,19 @@ void ConsoleFrame::drawShelterBackground()
         float cx = startX + i * (cabW + cabGap);
 
         // Cabinet face — dark steel
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2(cx, cabBot),
             cocos2d::Vec2(cx + cabW, cabTop),
             (i % 3 == 0) ? cabDark : cabMid);
 
         // Cabinet border lines (recessed seams between panels)
-        housingNode_->drawLine(
+        backgroundNode_->drawLine(
             cocos2d::Vec2(cx, cabBot), cocos2d::Vec2(cx, cabTop), cabBorder);
-        housingNode_->drawLine(
+        backgroundNode_->drawLine(
             cocos2d::Vec2(cx + cabW, cabBot), cocos2d::Vec2(cx + cabW, cabTop), cabBorder);
 
         // Vertical edge highlight (left side catches faint light)
-        housingNode_->drawLine(
+        backgroundNode_->drawLine(
             cocos2d::Vec2(cx + 1, cabBot + 10), cocos2d::Vec2(cx + 1, cabTop - 10),
             cocos2d::Color4F(0.14f, 0.16f, 0.14f, 0.3f));
 
@@ -333,13 +335,13 @@ void ConsoleFrame::drawShelterBackground()
         float sectionH = (cabTop - cabBot) / 3.0f;
         for (int s = 1; s < 3; s++) {
             float divY = cabBot + s * sectionH;
-            housingNode_->drawLine(
+            backgroundNode_->drawLine(
                 cocos2d::Vec2(cx + 4, divY),
                 cocos2d::Vec2(cx + cabW - 4, divY),
                 cabBorder);
             // Small handle/latch detail on each section
             float handleY = divY - sectionH * 0.5f;
-            housingNode_->drawSolidRect(
+            backgroundNode_->drawSolidRect(
                 cocos2d::Vec2(cx + cabW * 0.35f, handleY - 2),
                 cocos2d::Vec2(cx + cabW * 0.65f, handleY + 2),
                 cocos2d::Color4F(0.16f, 0.17f, 0.15f, 0.5f));
@@ -350,7 +352,7 @@ void ConsoleFrame::drawShelterBackground()
             float ventTop = cabTop - 15.0f;
             for (int v = 0; v < 4; v++) {
                 float vy = ventTop - v * 6.0f;
-                housingNode_->drawLine(
+                backgroundNode_->drawLine(
                     cocos2d::Vec2(cx + 10, vy),
                     cocos2d::Vec2(cx + cabW - 10, vy),
                     cocos2d::Color4F(0.03f, 0.03f, 0.03f, 0.6f));
@@ -359,14 +361,14 @@ void ConsoleFrame::drawShelterBackground()
     }
 
     // === Ceiling ===
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, cabTop),
         cocos2d::Vec2(sceneW, sceneH),
         cocos2d::Color4F(0.06f, 0.07f, 0.06f, 1.0f));
 
     // Ceiling structural ribs
     for (int cx = -700; cx <= 700; cx += 200) {
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2((float)cx - 3, cabTop),
             cocos2d::Vec2((float)cx + 3, sceneH),
             cocos2d::Color4F(0.08f, 0.09f, 0.08f, 1.0f));
@@ -374,25 +376,25 @@ void ConsoleFrame::drawShelterBackground()
 
     // Red night ops light strips (dimmer, more subtle)
     for (int lx = -500; lx <= 500; lx += 250) {
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2((float)lx - 15.0f, sceneH - 30.0f),
             cocos2d::Vec2((float)lx + 15.0f, sceneH - 26.0f),
             cocos2d::Color4F(0.22f, 0.04f, 0.04f, 0.5f));
         // Red light glow cone downward
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2((float)lx - 40.0f, sceneH - 60.0f),
             cocos2d::Vec2((float)lx + 40.0f, sceneH - 30.0f),
             cocos2d::Color4F(0.12f, 0.03f, 0.03f, 0.15f));
     }
 
     // === Floor ===
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, -sceneH),
         cocos2d::Vec2(sceneW, cabBot),
         cocos2d::Color4F(0.04f, 0.04f, 0.03f, 1.0f));
 
     // Floor highlight (rubber matting sheen)
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, cabBot - 2),
         cocos2d::Vec2(sceneW, cabBot),
         cocos2d::Color4F(0.08f, 0.08f, 0.07f, 0.5f));
@@ -972,6 +974,103 @@ void ConsoleFrame::drawRightPanel()
                       btnFace, greenLit);
     }
 
+    // === GRID COORD thumbwheels (8 digits for UTM easting/northing) ===
+    float twSectionTop = lowerTop - 3 * rowStep - sectionGap;
+
+    auto* coordLabel = cocos2d::Label::createWithSystemFont("GRID COORD", "Courier", 5);
+    coordLabel->setPosition(cocos2d::Vec2(panelCX, twSectionTop + 12));
+    coordLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 180));
+    panelNode_->addChild(coordLabel);
+
+    // Two rows of 4 thumbwheels: top = EASTING, bottom = NORTHING
+    float twW = 14.0f;      // wheel width
+    float twH = 18.0f;      // wheel height
+    float twGap = 3.0f;     // gap between wheels
+    float twRowGap = 6.0f;  // gap between the two rows
+    int twCols = 4;
+    float twTotalW = twCols * twW + (twCols - 1) * twGap;
+    float twStartX = panelCX - twTotalW * 0.5f;
+
+    // Recessed background for thumbwheel area
+    float twBgL = twStartX - 6.0f;
+    float twBgR = twStartX + twTotalW + 6.0f;
+    float twBgT = twSectionTop;
+    float twBgB = twSectionTop - 2 * twH - twRowGap - 8.0f;
+    buttonNode_->drawSolidRect(
+        cocos2d::Vec2(twBgL, twBgB),
+        cocos2d::Vec2(twBgR, twBgT),
+        cocos2d::Color4F(0.10f, 0.12f, 0.09f, 1.0f));
+    buttonNode_->drawRect(
+        cocos2d::Vec2(twBgL, twBgB),
+        cocos2d::Vec2(twBgR, twBgT),
+        cocos2d::Color4F(0.28f, 0.36f, 0.30f, 0.6f));
+
+    // Row labels
+    auto* eastLabel = cocos2d::Label::createWithSystemFont("E", "Courier", 5);
+    eastLabel->setPosition(cocos2d::Vec2(twBgL - 6, twSectionTop - twH * 0.5f - 2));
+    eastLabel->setTextColor(cocos2d::Color4B(160, 170, 150, 160));
+    buttonNode_->addChild(eastLabel);
+
+    auto* northLabel = cocos2d::Label::createWithSystemFont("N", "Courier", 5);
+    northLabel->setPosition(cocos2d::Vec2(twBgL - 6, twSectionTop - twH - twRowGap - twH * 0.5f - 2));
+    northLabel->setTextColor(cocos2d::Color4B(160, 170, 150, 160));
+    buttonNode_->addChild(northLabel);
+
+    // Sample digits displayed on each wheel
+    const char* eastDigits[]  = { "3", "4", "7", "2" };
+    const char* northDigits[] = { "5", "8", "1", "6" };
+
+    for (int row = 0; row < 2; row++) {
+        float rowY = twSectionTop - 2.0f - row * (twH + twRowGap) - twH * 0.5f;
+        const char** digits = (row == 0) ? eastDigits : northDigits;
+
+        for (int col = 0; col < twCols; col++) {
+            float cx = twStartX + col * (twW + twGap) + twW * 0.5f;
+
+            // Wheel housing (dark slot)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f, rowY - twH * 0.5f),
+                cocos2d::Vec2(cx + twW * 0.5f, rowY + twH * 0.5f),
+                cocos2d::Color4F(0.06f, 0.06f, 0.05f, 1.0f));
+
+            // Wheel drum face (light gray with ribbed texture)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f + 1, rowY - twH * 0.35f),
+                cocos2d::Vec2(cx + twW * 0.5f - 1, rowY + twH * 0.35f),
+                cocos2d::Color4F(0.72f, 0.70f, 0.66f, 1.0f));
+
+            // Knurled ribs on the wheel edges
+            for (float ry = rowY - twH * 0.35f + 2; ry < rowY + twH * 0.35f - 1; ry += 3.0f) {
+                buttonNode_->drawLine(
+                    cocos2d::Vec2(cx - twW * 0.5f + 1, ry),
+                    cocos2d::Vec2(cx + twW * 0.5f - 1, ry),
+                    cocos2d::Color4F(0.60f, 0.58f, 0.54f, 0.4f));
+            }
+
+            // Digit readout window (white strip in center)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f + 2, rowY - 4),
+                cocos2d::Vec2(cx + twW * 0.5f - 2, rowY + 4),
+                cocos2d::Color4F(0.90f, 0.88f, 0.82f, 1.0f));
+
+            // Digit
+            auto* digitLabel = cocos2d::Label::createWithSystemFont(digits[col], "Courier", 7);
+            digitLabel->setPosition(cocos2d::Vec2(cx, rowY));
+            digitLabel->setTextColor(cocos2d::Color4B(20, 20, 18, 255));
+            buttonNode_->addChild(digitLabel);
+
+            // Shadow at top and bottom of slot (wheel disappears into housing)
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f, rowY + twH * 0.5f - 2),
+                cocos2d::Vec2(cx + twW * 0.5f, rowY + twH * 0.5f),
+                cocos2d::Color4F(0.04f, 0.04f, 0.03f, 0.6f));
+            buttonNode_->drawSolidRect(
+                cocos2d::Vec2(cx - twW * 0.5f, rowY - twH * 0.5f),
+                cocos2d::Vec2(cx + twW * 0.5f, rowY - twH * 0.5f + 2),
+                cocos2d::Color4F(0.04f, 0.04f, 0.03f, 0.6f));
+        }
+    }
+
     // === CURSOR JOYSTICK (anchored to bottom of right panel) ===
     float panelBot = -hph + inset + 16.0f;          // bottom of inner recess + padding
     float joyY = panelBot + 22.0f;                   // base plate radius up from bottom
@@ -1063,12 +1162,81 @@ void ConsoleFrame::drawWritingBench()
                     cocos2d::Color4F(0.44f, 0.58f, 0.50f, 1.0f),
                     cocos2d::Color4F(0.32f, 0.44f, 0.38f, 1.0f));
 
-    // Writing surface (slightly lighter, worn smooth from use)
+    // Writing surface — seafoam green metal
     float surfInset = 4.0f;
+    float surfL = -hw - benchOverhang + surfInset;
+    float surfR =  hw + benchOverhang - surfInset;
+    float surfB = benchBot + surfInset;
+    float surfT = benchTop - 2;
     housingNode_->drawSolidRect(
-        cocos2d::Vec2(-hw - benchOverhang + surfInset, benchBot + surfInset),
-        cocos2d::Vec2(hw + benchOverhang - surfInset, benchTop - 2),
-        cocos2d::Color4F(0.48f, 0.62f, 0.54f, 1.0f));
+        cocos2d::Vec2(surfL, surfB),
+        cocos2d::Vec2(surfR, surfT),
+        cocos2d::Color4F(0.46f, 0.60f, 0.52f, 1.0f));
+
+    // === Plexiglass cover panels (two side-by-side) ===
+    // Each panel covers half the bench — operator can slip reference papers under
+    float plexGap = 3.0f;       // gap between the two panels
+    float plexInset = 6.0f;     // inset from surface edges
+    float plexL1 = surfL + plexInset;
+    float plexR1 = -plexGap * 0.5f;
+    float plexL2 =  plexGap * 0.5f;
+    float plexR2 = surfR - plexInset;
+    float plexB = surfB + plexInset;
+    float plexT = surfT - plexInset;
+
+    // Paper/cheat-sheet visible under left plexiglass
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL1 + 4, plexB + 2),
+        cocos2d::Vec2(plexR1 - 4, plexT - 2),
+        cocos2d::Color4F(0.82f, 0.80f, 0.72f, 0.35f));
+    // Faint text lines on the paper
+    for (float ly = plexB + 7; ly < plexT - 4; ly += 5.0f) {
+        housingNode_->drawLine(
+            cocos2d::Vec2(plexL1 + 8, ly),
+            cocos2d::Vec2(plexR1 - 8, ly),
+            cocos2d::Color4F(0.30f, 0.30f, 0.28f, 0.15f));
+    }
+
+    // Paper under right plexiglass
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL2 + 4, plexB + 2),
+        cocos2d::Vec2(plexR2 - 4, plexT - 2),
+        cocos2d::Color4F(0.82f, 0.80f, 0.72f, 0.30f));
+    for (float ly = plexB + 7; ly < plexT - 4; ly += 5.0f) {
+        housingNode_->drawLine(
+            cocos2d::Vec2(plexL2 + 8, ly),
+            cocos2d::Vec2(plexR2 - 8, ly),
+            cocos2d::Color4F(0.30f, 0.30f, 0.28f, 0.12f));
+    }
+
+    // Left plexiglass panel — slight sheen/glare
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL1, plexB),
+        cocos2d::Vec2(plexR1, plexT),
+        cocos2d::Color4F(0.70f, 0.75f, 0.72f, 0.10f));
+    housingNode_->drawRect(
+        cocos2d::Vec2(plexL1, plexB),
+        cocos2d::Vec2(plexR1, plexT),
+        cocos2d::Color4F(0.55f, 0.65f, 0.58f, 0.35f));
+    // Glare highlight across top edge
+    housingNode_->drawLine(
+        cocos2d::Vec2(plexL1 + 2, plexT - 1),
+        cocos2d::Vec2(plexR1 - 2, plexT - 1),
+        cocos2d::Color4F(0.80f, 0.85f, 0.80f, 0.18f));
+
+    // Right plexiglass panel
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL2, plexB),
+        cocos2d::Vec2(plexR2, plexT),
+        cocos2d::Color4F(0.70f, 0.75f, 0.72f, 0.10f));
+    housingNode_->drawRect(
+        cocos2d::Vec2(plexL2, plexB),
+        cocos2d::Vec2(plexR2, plexT),
+        cocos2d::Color4F(0.55f, 0.65f, 0.58f, 0.35f));
+    housingNode_->drawLine(
+        cocos2d::Vec2(plexL2 + 2, plexT - 1),
+        cocos2d::Vec2(plexR2 - 2, plexT - 1),
+        cocos2d::Color4F(0.80f, 0.85f, 0.80f, 0.18f));
 
     // Surface highlight (top edge catches light)
     housingNode_->drawLine(
@@ -1081,16 +1249,6 @@ void ConsoleFrame::drawWritingBench()
         cocos2d::Vec2(-hw - benchOverhang + 2, benchBot),
         cocos2d::Vec2(hw + benchOverhang - 2, benchBot + 3),
         cocos2d::Color4F(0.38f, 0.50f, 0.42f, 1.0f));
-
-    // Pen groove / channel along front
-    housingNode_->drawLine(
-        cocos2d::Vec2(-hw * 0.3f, benchBot + 8),
-        cocos2d::Vec2(hw * 0.3f, benchBot + 8),
-        cocos2d::Color4F(0.35f, 0.46f, 0.40f, 0.6f));
-    housingNode_->drawLine(
-        cocos2d::Vec2(-hw * 0.3f, benchBot + 9),
-        cocos2d::Vec2(hw * 0.3f, benchBot + 9),
-        cocos2d::Color4F(0.50f, 0.64f, 0.55f, 0.3f));
 }
 
 // ============================================================================
