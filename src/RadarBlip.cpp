@@ -109,17 +109,21 @@ void RadarBlip::updateBlip(float dt, float sweepAngleDeg)
     // Remove old labels from trackNode_
     trackNode_->removeAllChildren();
 
+    // Phosphor tick only renders when sweep has recently painted the blip
     if (isVisible()) {
         drawPhosphorTick();
+    }
 
-        if (trackOverlayEnabled_ &&
-            trackData_.classification != TrackClassification::PENDING) {
-            drawTrackOverlay();
-        }
+    // Track overlay persists on screen as long as the track exists —
+    // the AN/TSQ-73 keeps the track displayed continuously, independent
+    // of the sweep pulse that only affects the raw radar return (blip).
+    if (trackOverlayEnabled_ &&
+        trackData_.classification != TrackClassification::PENDING) {
+        drawTrackOverlay();
+    }
 
-        if (selected_) {
-            drawSelectionBracket();
-        }
+    if (selected_) {
+        drawSelectionBracket();
     }
 }
 
@@ -169,12 +173,12 @@ void RadarBlip::drawPhosphorTick()
 
 void RadarBlip::drawTrackOverlay()
 {
-    float intensity = phosphorIntensity_;
     cocos2d::Color4F clsColor = getClassificationColor();
 
-    // Scale overlay alpha with phosphor intensity (track fades with blip)
-    float overlayAlpha = std::min(intensity + 0.1f, 1.0f);
-    clsColor.a = overlayAlpha * 0.85f;
+    // Track overlay stays at constant brightness — the AN/TSQ-73 maintains
+    // the track display continuously, independent of the sweep-pulsed blip.
+    float overlayAlpha = 0.85f;
+    clsColor.a = overlayAlpha;
 
     float size = getTickSize() + 3.0f;
 
