@@ -29,6 +29,9 @@ bool RadarDisplay::init(float radius)
     if (!Node::init()) return false;
 
     radius_ = radius;
+    // Sweep extends ~18% beyond the coordinate radius so the outer ring
+    // falls behind the console bezel, visible only through the glass opening.
+    sweepRadius_ = radius * 1.18f;
     sweepAngle_ = 0.0f;
     prevSweepAngle_ = 0.0f;
     selectedTrackId_ = -1;
@@ -110,12 +113,12 @@ void RadarDisplay::drawBackground()
 {
     backgroundNode_->clear();
 
-    // Dark scope background
+    // Dark scope background — extends to sweepRadius_ (behind the bezel)
     backgroundNode_->drawSolidCircle(
-        cocos2d::Vec2::ZERO, radius_, 0, 72,
+        cocos2d::Vec2::ZERO, sweepRadius_, 0, 72,
         cocos2d::Color4F(0.0f, 0.03f, 0.0f, 1.0f));
 
-    // Outer rim (bright green border)
+    // Outer rim at coordinate radius (visible edge of the playfield)
     backgroundNode_->drawCircle(
         cocos2d::Vec2::ZERO, radius_, 0, 72, false,
         cocos2d::Color4F(0.0f, 0.7f, 0.0f, 0.9f));
@@ -166,7 +169,7 @@ void RadarDisplay::drawAzimuthLines()
         float angle = i * 30.0f;
         float rad = angle * M_PI / 180.0f;
 
-        cocos2d::Vec2 end(radius_ * std::sin(rad), radius_ * std::cos(rad));
+        cocos2d::Vec2 end(sweepRadius_ * std::sin(rad), sweepRadius_ * std::cos(rad));
 
         // Dimmer lines for non-cardinal, brighter for N/E/S/W
         float alpha = (i % 3 == 0) ? 0.35f : 0.18f;
@@ -174,8 +177,9 @@ void RadarDisplay::drawAzimuthLines()
             cocos2d::Vec2::ZERO, end,
             cocos2d::Color4F(0.0f, 0.25f, 0.0f, alpha));
 
-        // Azimuth label outside the scope edge
-        cocos2d::Vec2 labelPos = end * 1.06f;
+        // Azimuth label at the coordinate radius edge
+        cocos2d::Vec2 coordEnd(radius_ * std::sin(rad), radius_ * std::cos(rad));
+        cocos2d::Vec2 labelPos = coordEnd * 1.06f;
         auto* azLabel = cocos2d::Label::createWithSystemFont(
             labels[i], "Courier", (i % 3 == 0) ? 12 : 9);
         azLabel->setPosition(labelPos);
@@ -216,8 +220,10 @@ void RadarDisplay::drawCenterCrosshair()
 
 void RadarDisplay::drawSweepBeam()
 {
+    // Sweep beam uses sweepRadius_ — it extends behind the bezel,
+    // with the outer portion hidden by the CRT glass clipping mask.
     float rad = sweepAngle_ * M_PI / 180.0f;
-    cocos2d::Vec2 beamEnd(radius_ * std::sin(rad), radius_ * std::cos(rad));
+    cocos2d::Vec2 beamEnd(sweepRadius_ * std::sin(rad), sweepRadius_ * std::cos(rad));
 
     // Leading edge — bright green line
     sweepNode_->drawLine(
@@ -247,8 +253,8 @@ void RadarDisplay::drawSweepBeam()
         float alpha2 = 0.25f * (1.0f - (float)i / SWEEP_TRAIL_SEGMENTS);
         float avgAlpha = (alpha1 + alpha2) * 0.5f;
 
-        cocos2d::Vec2 p1(radius_ * std::sin(rad1), radius_ * std::cos(rad1));
-        cocos2d::Vec2 p2(radius_ * std::sin(rad2), radius_ * std::cos(rad2));
+        cocos2d::Vec2 p1(sweepRadius_ * std::sin(rad1), sweepRadius_ * std::cos(rad1));
+        cocos2d::Vec2 p2(sweepRadius_ * std::sin(rad2), sweepRadius_ * std::cos(rad2));
 
         cocos2d::Vec2 verts[] = {cocos2d::Vec2::ZERO, p1, p2};
         sweepNode_->drawPolygon(verts, 3,
@@ -621,6 +627,7 @@ RadarDisplay* RadarDisplay::create(float radius)
 bool RadarDisplay::init(float radius)
 {
     radius_ = radius;
+    sweepRadius_ = radius * 1.18f;
     sweepAngle_ = 0.0f;
     selectedTrackId_ = -1;
     return true;
