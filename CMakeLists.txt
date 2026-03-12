@@ -76,6 +76,8 @@ set(GAME_SOURCES
     src/DataCard.cpp
     src/ThreatBoard.cpp
     src/BattalionHQ.cpp
+    src/DrawerBook.cpp
+    src/WelcomeScreen.cpp
 )
 
 set(GAME_HEADERS
@@ -98,6 +100,8 @@ set(GAME_HEADERS
     include/DataCard.h
     include/ThreatBoard.h
     include/BattalionHQ.h
+    include/DrawerBook.h
+    include/WelcomeScreen.h
 )
 
 # ============================================================================
@@ -153,6 +157,8 @@ set(GAME_LIB_SOURCES
     src/DataCard.cpp
     src/ThreatBoard.cpp
     src/BattalionHQ.cpp
+    src/DrawerBook.cpp
+    src/WelcomeScreen.cpp
 )
 
 add_library(MissileBatteryCommandLib STATIC ${GAME_LIB_SOURCES} ${GAME_HEADERS})

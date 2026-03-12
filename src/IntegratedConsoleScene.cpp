@@ -15,8 +15,16 @@ IntegratedConsoleScene::IntegratedConsoleScene()
     : gameConfig_(GameConfig::getInstance())
     , radarDisplay_(nullptr)
     , consoleFrame_(nullptr)
+    , leftDrawer_(nullptr)
+    , rightDrawer_(nullptr)
+    , welcomeScreen_(nullptr)
+    , gameState_(GameState::WELCOME)
     , score_(0)
     , gameOver_(false)
+    , gameTimer_(0.0f)
+    , levelTimer_(0.0f)
+    , hostilesPenetrated_(0)
+    , hostilesDestroyed_(0)
 {
 }
 
@@ -51,11 +59,154 @@ bool IntegratedConsoleScene::init()
 
     // Create the integrated console display
     initConsole();
+    initDrawers();
     initInputHandlers();
 
-    // Start game loop
+    // Show welcome screen on top
+    initWelcomeScreen();
+
+    // Start game loop (paused during welcome)
     scheduleUpdate();
     return true;
+}
+
+// ============================================================================
+// Level definitions — duration and hostile target count
+// ============================================================================
+
+float IntegratedConsoleScene::getLevelDuration(int level) const
+{
+    // Seconds per level
+    switch (level) {
+        case 1: return 120.0f;   // 2 minutes — learn the ropes
+        case 2: return 150.0f;   // 2.5 minutes
+        case 3: return 180.0f;   // 3 minutes
+        case 4: return 210.0f;   // 3.5 minutes
+        case 5: return 300.0f;   // 5 minutes — final stand
+        default: return 180.0f;
+    }
+}
+
+int IntegratedConsoleScene::getLevelHostileTarget(int level) const
+{
+    // Hostiles to destroy to complete the level
+    switch (level) {
+        case 1: return 5;
+        case 2: return 10;
+        case 3: return 18;
+        case 4: return 25;
+        case 5: return 40;
+        default: return 15;
+    }
+}
+
+// ============================================================================
+// Welcome screen
+// ============================================================================
+
+void IntegratedConsoleScene::initWelcomeScreen()
+{
+    auto visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
+    welcomeScreen_ = WelcomeScreen::create(visibleSize.width, visibleSize.height);
+    welcomeScreen_->setOnDismiss([this]() {
+        welcomeScreen_ = nullptr;
+        startGame();
+    });
+    addChild(welcomeScreen_, 100);
+}
+
+// ============================================================================
+// Game flow
+// ============================================================================
+
+void IntegratedConsoleScene::startGame()
+{
+    gameState_ = GameState::RUNNING;
+    score_ = 0;
+    gameOver_ = false;
+    gameTimer_ = 0.0f;
+    levelTimer_ = getLevelDuration(gameConfig_.getLevel());
+    hostilesPenetrated_ = 0;
+    hostilesDestroyed_ = 0;
+
+    if (consoleFrame_) {
+        consoleFrame_->setScore(score_);
+        consoleFrame_->setLevel(gameConfig_.getLevel());
+        consoleFrame_->addMessage("=== DEFENSE OPERATION COMMENCED ===");
+        consoleFrame_->addMessage("LEVEL 1 - TRAINING SCENARIO");
+        std::string targetMsg = "OBJECTIVE: DESTROY " +
+            std::to_string(getLevelHostileTarget(gameConfig_.getLevel())) + " HOSTILES";
+        consoleFrame_->addMessage(targetMsg);
+    }
+}
+
+void IntegratedConsoleScene::restartGame()
+{
+    // Clear all aircraft and tracks
+    aircraft_.clear();
+    trackManager_ = TrackManager();
+    fireControlSystem_ = FireControlSystem();
+    fireControlSystem_.init();
+
+    // Reset to level 1
+    gameConfig_.setLevel(1);
+    aircraftGenerator_ = AircraftGenerator();
+    aircraftGenerator_.init(1);
+    trackManager_.getIFFSystem().setErrorRate(gameConfig_.getIFFErrorRate());
+
+    battalionHQ_ = BattalionHQ();
+    battalionHQ_.init(0.5f, 0.0f);
+
+    // Reset display
+    if (radarDisplay_) {
+        radarDisplay_->setSelectedTrack(-1);
+        radarDisplay_->setTrackManager(&trackManager_);
+        radarDisplay_->setFireControlSystem(&fireControlSystem_);
+    }
+    if (consoleFrame_) {
+        consoleFrame_->setTrackManager(&trackManager_);
+        consoleFrame_->setFireControlSystem(&fireControlSystem_);
+        consoleFrame_->setThreatBoard(&threatBoard_);
+        consoleFrame_->setBattalionHQ(&battalionHQ_);
+        consoleFrame_->setSelectedTrack(-1);
+    }
+
+    startGame();
+}
+
+void IntegratedConsoleScene::advanceLevel()
+{
+    int nextLevel = gameConfig_.getLevel() + 1;
+    if (nextLevel > 5) {
+        // Victory!
+        gameState_ = GameState::GAME_OVER;
+        if (consoleFrame_) {
+            consoleFrame_->addMessage("========================================");
+            consoleFrame_->addMessage("=== MISSION COMPLETE - VICTORY! ===");
+            consoleFrame_->addMessage("FINAL SCORE: " + std::to_string(score_));
+            consoleFrame_->addMessage("PRESS R TO RESTART");
+        }
+        return;
+    }
+
+    gameConfig_.setLevel(nextLevel);
+    aircraftGenerator_ = AircraftGenerator();
+    aircraftGenerator_.init(nextLevel);
+    trackManager_.getIFFSystem().setErrorRate(gameConfig_.getIFFErrorRate());
+
+    levelTimer_ = getLevelDuration(nextLevel);
+    hostilesDestroyed_ = 0;
+    hostilesPenetrated_ = 0;
+    gameState_ = GameState::RUNNING;
+
+    if (consoleFrame_) {
+        consoleFrame_->setLevel(nextLevel);
+        std::string lvlMsg = "=== LEVEL " + std::to_string(nextLevel) + " ===";
+        consoleFrame_->addMessage(lvlMsg);
+        std::string targetMsg = "OBJECTIVE: DESTROY " +
+            std::to_string(getLevelHostileTarget(nextLevel)) + " HOSTILES";
+        consoleFrame_->addMessage(targetMsg);
+    }
 }
 
 void IntegratedConsoleScene::initConsole()
@@ -64,14 +215,9 @@ void IntegratedConsoleScene::initConsole()
     auto center = cocos2d::Vec2(visibleSize.width * 0.5f, visibleSize.height * 0.5f);
 
     // AN/TSQ-73 console: landscape (wider than tall).
-    // bezelW = (2r + 50) + 2*(14 + 160) + 60 = 2r + 458
-    // bezelH = ((2r + 50) * 1.25 + 30) + 90 = 2.5r + 182.5
-    // Writing bench adds ~54px below console.
-    // Solve for r given max screen dimensions:
-    float maxBezelW = visibleSize.width * 0.92f;   // wider screen usage
-    float maxBezelH = visibleSize.height * 0.82f;  // leave room for bench + bottom bar
+    float maxBezelW = visibleSize.width * 0.92f;
+    float maxBezelH = visibleSize.height * 0.82f;
     float rFromW = (maxBezelW - 458.0f) * 0.5f;
-    // From bezelH: maxH = (2r+50)*1.25 + 120 => r = ((maxH-120)/1.25 - 50)/2
     float rFromH = ((maxBezelH - 120.0f) / 1.25f - 50.0f) * 0.5f;
     float radarRadius = std::max(80.0f, std::min(rFromH, rFromW));
 
@@ -98,32 +244,27 @@ void IntegratedConsoleScene::initConsole()
 
     auto* stencil = cocos2d::DrawNode::create();
     {
-        // Build rounded-rectangle polygon for the stencil mask
         float hw = clipW * 0.5f;
         float hh = clipH * 0.5f;
         float r = std::min(clipR, std::min(hw, hh));
         const int arcSteps = 8;
         std::vector<cocos2d::Vec2> verts;
 
-        // Bottom-left corner
         for (int i = 0; i <= arcSteps; i++) {
             float angle = M_PI + (M_PI * 0.5f) * ((float)i / arcSteps);
             verts.push_back(cocos2d::Vec2(-hw + r + r * cosf(angle),
                                            -hh + r + r * sinf(angle)));
         }
-        // Bottom-right corner
         for (int i = 0; i <= arcSteps; i++) {
             float angle = M_PI * 1.5f + (M_PI * 0.5f) * ((float)i / arcSteps);
             verts.push_back(cocos2d::Vec2(hw - r + r * cosf(angle),
                                            -hh + r + r * sinf(angle)));
         }
-        // Top-right corner
         for (int i = 0; i <= arcSteps; i++) {
             float angle = 0.0f + (M_PI * 0.5f) * ((float)i / arcSteps);
             verts.push_back(cocos2d::Vec2(hw - r + r * cosf(angle),
                                            hh - r + r * sinf(angle)));
         }
-        // Top-left corner
         for (int i = 0; i <= arcSteps; i++) {
             float angle = M_PI * 0.5f + (M_PI * 0.5f) * ((float)i / arcSteps);
             verts.push_back(cocos2d::Vec2(-hw + r + r * cosf(angle),
@@ -140,26 +281,22 @@ void IntegratedConsoleScene::initConsole()
     clipNode->addChild(radarDisplay_);
     addChild(clipNode, 1);
 
-    // CRT glass reflection — very subtle shine from the overhead shelter lights
-    // Drawn on top of the clipped radar, below the console frame overlay
+    // CRT glass reflection
     auto* glassReflection = cocos2d::DrawNode::create();
     {
         float hw = clipW * 0.5f;
         float hh = clipH * 0.5f;
 
-        // Broad diffuse highlight across upper portion of glass (3% opacity)
         glassReflection->drawSolidRect(
             cocos2d::Vec2(-hw, hh * 0.15f),
             cocos2d::Vec2(hw, hh),
             cocos2d::Color4F(0.7f, 0.75f, 0.65f, 0.03f));
 
-        // Slightly brighter strip near top edge (overhead light reflection)
         glassReflection->drawSolidRect(
             cocos2d::Vec2(-hw * 0.7f, hh * 0.70f),
             cocos2d::Vec2(hw * 0.7f, hh * 0.85f),
             cocos2d::Color4F(0.8f, 0.85f, 0.75f, 0.04f));
 
-        // Diagonal glare streak (top-left to center-right)
         std::vector<cocos2d::Vec2> glare = {
             { -hw * 0.6f, hh * 0.85f },
             { -hw * 0.3f, hh * 0.90f },
@@ -173,20 +310,366 @@ void IntegratedConsoleScene::initConsole()
     addChild(glassReflection, 2);
 }
 
+// ============================================================================
+// Drawer reference books
+// ============================================================================
+
+void IntegratedConsoleScene::initDrawers()
+{
+    auto visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
+    float drawerW = 300.0f;
+    float drawerH = visibleSize.height * 0.85f;
+
+    // Left drawer — Fire Control reference
+    leftDrawer_ = DrawerBook::create(DrawerSide::LEFT, drawerW, drawerH);
+    leftDrawer_->setPositionY(visibleSize.height * 0.5f - drawerH * 0.5f);
+    leftDrawer_->setOnOpen([this]() {
+        if (rightDrawer_ && rightDrawer_->isOpen()) rightDrawer_->close();
+    });
+    populateFireControlBook();
+    addChild(leftDrawer_, 50);
+
+    // Right drawer — Settings/Instructions reference
+    rightDrawer_ = DrawerBook::create(DrawerSide::RIGHT, drawerW, drawerH);
+    rightDrawer_->setPositionY(visibleSize.height * 0.5f - drawerH * 0.5f);
+    rightDrawer_->setOnOpen([this]() {
+        if (leftDrawer_ && leftDrawer_->isOpen()) leftDrawer_->close();
+    });
+    populateSettingsBook();
+    addChild(rightDrawer_, 50);
+}
+
+void IntegratedConsoleScene::populateFireControlBook()
+{
+    // Page 1: Fire Control Overview
+    {
+        BookPage page;
+        page.title = "FIRE CONTROL COMMANDS";
+        page.lines = {
+            {"BATTERY ASSIGNMENT", TextColor::YELLOW, true},
+            {""},
+            {"Select a track on the radar scope by"},
+            {"clicking on the blip. Then press a"},
+            {"number key to assign a battery:"},
+            {""},
+            {"  1-3  PATRIOT batteries", TextColor::GREEN},
+            {"  4-6  HAWK batteries", TextColor::GREEN},
+            {"  7-9  JAVELIN platoons", TextColor::GREEN},
+            {""},
+            {"ENGAGEMENT CONTROLS", TextColor::YELLOW, true},
+            {""},
+            {"  F    Authorize fire", TextColor::GREEN},
+            {"  A    Abort engagement", TextColor::GREEN},
+            {"  P    Toggle phosphor color", TextColor::GREEN},
+            {""},
+            {"IFF PROCEDURE", TextColor::YELLOW, true},
+            {""},
+            {"All contacts start as PENDING."},
+            {"Mode 4 interrogation takes ~2 sec."},
+            {"FRIENDLY = valid squawk received.", TextColor::CYAN},
+            {"HOSTILE  = no squawk response.", TextColor::RED},
+            {"UNKNOWN  = inconclusive/jammed.", TextColor::YELLOW},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 2: Patriot Battery
+    {
+        BookPage page;
+        page.title = "MIM-104 PATRIOT";
+        page.lines = {
+            {"PATRIOT-1, PATRIOT-2, PATRIOT-3", TextColor::GREEN, true},
+            {""},
+            {"Long-range, high-altitude backbone", TextColor::CYAN},
+            {"of the defense. AN/MPQ-53 phased"},
+            {"array tracking radar."},
+            {""},
+            {"SPECIFICATIONS", TextColor::YELLOW, true},
+            {"  Max Range:     160 km"},
+            {"  Min Range:       3 km"},
+            {"  Altitude:    1,000 - 80,000 ft"},
+            {"  Ready Msls:  4 per launcher"},
+            {"  Missile Spd: 1,700 m/s (Mach 5)"},
+            {"  Kill Prob:   ~85%"},
+            {"  Reload Time: ~15 sec"},
+            {""},
+            {"BEST USED AGAINST:", TextColor::YELLOW, true},
+            {"  Strategic bombers", TextColor::GREEN},
+            {"  High-altitude fighters", TextColor::GREEN},
+            {"  Stealth aircraft (long range)", TextColor::GREEN},
+            {""},
+            {"CAUTION: Do not waste Patriots on", TextColor::RED},
+            {"low-altitude drones or targets", TextColor::RED},
+            {"within Hawk envelope.", TextColor::RED},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 3: Hawk Battery
+    {
+        BookPage page;
+        page.title = "MIM-23 HAWK";
+        page.lines = {
+            {"HAWK-1, HAWK-2, HAWK-3", TextColor::GREEN, true},
+            {""},
+            {"Medium-range, low-to-medium altitude", TextColor::CYAN},
+            {"gap filler. AN/MPQ-46 High-Power"},
+            {"Illuminator tracking radar."},
+            {""},
+            {"SPECIFICATIONS", TextColor::YELLOW, true},
+            {"  Max Range:     45 km"},
+            {"  Min Range:      1 km"},
+            {"  Altitude:     100 - 45,000 ft"},
+            {"  Ready Msls:   3 per launcher"},
+            {"  Total Stock:  33 per battery"},
+            {"  Missile Spd:  900 m/s (Mach 2.7)"},
+            {"  Kill Prob:    ~75%"},
+            {"  Reload Time:  ~10 sec"},
+            {""},
+            {"BEST USED AGAINST:", TextColor::YELLOW, true},
+            {"  Tactical bombers", TextColor::GREEN},
+            {"  Fighter/attack aircraft", TextColor::GREEN},
+            {"  Medium-altitude threats", TextColor::GREEN},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 4: Javelin Platoon
+    {
+        BookPage page;
+        page.title = "FGM-148 JAVELIN MANPADS";
+        page.lines = {
+            {"JAVELIN-1, JAVELIN-2, JAVELIN-3", TextColor::GREEN, true},
+            {""},
+            {"Last line of defense. IR-guided,", TextColor::CYAN},
+            {"fire-and-forget. No radar signature."},
+            {"CLU IR/FLIR seeker."},
+            {""},
+            {"SPECIFICATIONS", TextColor::YELLOW, true},
+            {"  Max Range:     55 km (game)"},
+            {"  Min Range:      0.5 km"},
+            {"  Altitude:     GND - 15,000 ft"},
+            {"  Ready Msls:   2"},
+            {"  Missile Spd:  300 m/s"},
+            {"  Kill Prob:    ~65%"},
+            {"  Reload Time:  ~20 sec"},
+            {""},
+            {"KEY ADVANTAGE:", TextColor::YELLOW, true},
+            {"IR guidance means stealth aircraft", TextColor::GREEN},
+            {"gain NO benefit against Javelin.", TextColor::GREEN},
+            {"The seeker tracks heat, not radar.", TextColor::GREEN},
+            {""},
+            {"Use Javelin for leakers that", TextColor::RED},
+            {"penetrate the outer ring.", TextColor::RED},
+        };
+        leftDrawer_->addPage(page);
+    }
+
+    // Page 5: Scoring
+    {
+        BookPage page;
+        page.title = "SCORING & GAME END";
+        page.lines = {
+            {"SCORING", TextColor::YELLOW, true},
+            {""},
+            {"  Hostile destroyed:  +100 base", TextColor::GREEN},
+            {"    x type multiplier"},
+            {"  First-shot kill:    2x bonus", TextColor::GREEN},
+            {"  Hostile penetrates: -200", TextColor::RED},
+            {"  Missile wasted:     -25", TextColor::YELLOW},
+            {"  Friendly destroyed: GAME OVER", TextColor::RED, true},
+            {""},
+            {"GAME OVER CONDITIONS", TextColor::YELLOW, true},
+            {""},
+            {"  * Friendly aircraft destroyed", TextColor::RED},
+            {"  * Score drops below -2000", TextColor::RED},
+            {""},
+            {"LEVEL COMPLETE", TextColor::YELLOW, true},
+            {""},
+            {"Destroy the target number of"},
+            {"hostiles to advance to the next"},
+            {"difficulty level."},
+            {""},
+            {"Press R to restart at any time.", TextColor::CYAN},
+        };
+        leftDrawer_->addPage(page);
+    }
+}
+
+void IntegratedConsoleScene::populateSettingsBook()
+{
+    // Page 1: Controls overview
+    {
+        BookPage page;
+        page.title = "OPERATOR CONTROLS";
+        page.lines = {
+            {"RADAR SCOPE", TextColor::YELLOW, true},
+            {""},
+            {"Click on radar blip to select track."},
+            {"Selected track highlighted with"},
+            {"bracket indicator."},
+            {""},
+            {"KEYBOARD COMMANDS", TextColor::YELLOW, true},
+            {""},
+            {"  1-9  Assign battery to track", TextColor::GREEN},
+            {"  F    Authorize fire", TextColor::GREEN},
+            {"  A    Abort engagement", TextColor::GREEN},
+            {"  P    Toggle CRT phosphor color", TextColor::GREEN},
+            {"  R    Restart game", TextColor::GREEN},
+            {""},
+            {"DISPLAY OPTIONS", TextColor::YELLOW, true},
+            {""},
+            {"  P1 GREEN  Standard radar CRT", TextColor::GREEN},
+            {"  P39 AMBER Warm amber phosphor", TextColor::YELLOW},
+            {""},
+            {"Press P to cycle between phosphor"},
+            {"display modes."},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 2: Level descriptions
+    {
+        BookPage page;
+        page.title = "SCENARIO LEVELS";
+        page.lines = {
+            {"LEVEL 1 - TRAINING", TextColor::GREEN, true},
+            {"  3 max contacts, slow spawn rate"},
+            {"  No stealth, no IFF errors"},
+            {"  Objective: Destroy 5 hostiles"},
+            {""},
+            {"LEVEL 2 - ALERT", TextColor::GREEN, true},
+            {"  5 max contacts, faster spawns"},
+            {"  No stealth, no IFF errors"},
+            {"  Objective: Destroy 10 hostiles"},
+            {""},
+            {"LEVEL 3 - ENGAGEMENT", TextColor::YELLOW, true},
+            {"  8 max contacts, rapid spawns"},
+            {"  5% IFF error rate"},
+            {"  Objective: Destroy 18 hostiles"},
+            {""},
+            {"LEVEL 4 - ESCALATION", TextColor::YELLOW, true},
+            {"  10 max contacts, heavy pressure"},
+            {"  Stealth enabled, 10% IFF errors"},
+            {"  Objective: Destroy 25 hostiles"},
+            {""},
+            {"LEVEL 5 - FINAL STAND", TextColor::RED, true},
+            {"  15 max contacts, overwhelming"},
+            {"  Stealth enabled, 20% IFF errors"},
+            {"  Objective: Destroy 40 hostiles"},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 3: Defense layout
+    {
+        BookPage page;
+        page.title = "DEFENSE ZONE LAYOUT";
+        page.lines = {
+            {"BATTALION DEPLOYMENT", TextColor::YELLOW, true},
+            {""},
+            {"Territory radius: 25 km", TextColor::CYAN},
+            {"Total footprint: ~75 km across"},
+            {""},
+            {"OUTER RING (35 km)", TextColor::GREEN, true},
+            {"  PATRIOT-1  North"},
+            {"  PATRIOT-2  Southeast"},
+            {"  PATRIOT-3  Southwest"},
+            {""},
+            {"MIDDLE RING (20 km)", TextColor::GREEN, true},
+            {"  HAWK-1  Northeast"},
+            {"  HAWK-2  East"},
+            {"  HAWK-3  South"},
+            {""},
+            {"INNER RING (8 km)", TextColor::GREEN, true},
+            {"  JAVELIN-1  Northwest"},
+            {"  JAVELIN-2  South"},
+            {"  JAVELIN-3  Southwest"},
+            {""},
+            {"HQ: AN/TSQ-73 at center", TextColor::CYAN},
+            {"Radar: AN/TPS-43E (250 NM range)"},
+        };
+        rightDrawer_->addPage(page);
+    }
+
+    // Page 4: Threat types
+    {
+        BookPage page;
+        page.title = "THREAT IDENTIFICATION";
+        page.lines = {
+            {"HOSTILE AIRCRAFT", TextColor::RED, true},
+            {""},
+            {"  Strategic Bomber", TextColor::WHITE},
+            {"    High alt, fast, large RCS"},
+            {"  Fighter/Attack"},
+            {"    Fast, agile, medium alt"},
+            {"  Tactical Bomber"},
+            {"    Low-med alt, moderate speed"},
+            {"  Recon Drone"},
+            {"    Small, slow, hard to classify"},
+            {"  Attack Drone"},
+            {"    Small, may carry ordnance"},
+            {"  Stealth Fighter"},
+            {"    Reduced RCS, harder to detect"},
+            {""},
+            {"DO NOT ENGAGE", TextColor::RED, true},
+            {""},
+            {"  Civilian Airliner", TextColor::RED},
+            {"    -1000 pts / GAME OVER"},
+            {"  Friendly Military", TextColor::RED},
+            {"    GAME OVER on engagement"},
+            {""},
+            {"ALWAYS verify IFF before firing!", TextColor::YELLOW, true},
+        };
+        rightDrawer_->addPage(page);
+    }
+}
+
 void IntegratedConsoleScene::initInputHandlers()
 {
-    // Touch/click to select tracks on radar
+    // Touch/click to select tracks on radar AND interact with drawers
     auto listener = cocos2d::EventListenerTouchOneByOne::create();
     listener->onTouchBegan = [this](cocos2d::Touch* touch, cocos2d::Event* event) {
         auto touchPos = touch->getLocation();
-        auto localPos = radarDisplay_->convertToNodeSpace(touchPos);
 
-        int nearestTrackId = radarDisplay_->findNearestTrack(localPos, 20.0f);
+        // Welcome screen — dismiss on click
+        if (gameState_ == GameState::WELCOME && welcomeScreen_) {
+            welcomeScreen_->dismiss();
+            return true;
+        }
 
-        if (nearestTrackId >= 0) {
-            onTrackSelected(nearestTrackId);
-        } else {
-            onTrackSelected(-1);
+        // Check drawer handles first
+        if (leftDrawer_ && leftDrawer_->handleContainsPoint(touchPos)) {
+            leftDrawer_->toggle();
+            return true;
+        }
+        if (rightDrawer_ && rightDrawer_->handleContainsPoint(touchPos)) {
+            rightDrawer_->toggle();
+            return true;
+        }
+
+        // Check page navigation on open drawers
+        if (leftDrawer_ && leftDrawer_->isOpen()) {
+            auto zone = leftDrawer_->hitTest(touchPos);
+            if (zone == DrawerBook::HitZone::PREV_PAGE) { leftDrawer_->prevPage(); return true; }
+            if (zone == DrawerBook::HitZone::NEXT_PAGE) { leftDrawer_->nextPage(); return true; }
+        }
+        if (rightDrawer_ && rightDrawer_->isOpen()) {
+            auto zone = rightDrawer_->hitTest(touchPos);
+            if (zone == DrawerBook::HitZone::PREV_PAGE) { rightDrawer_->prevPage(); return true; }
+            if (zone == DrawerBook::HitZone::NEXT_PAGE) { rightDrawer_->nextPage(); return true; }
+        }
+
+        // Radar track selection
+        if (gameState_ == GameState::RUNNING && radarDisplay_) {
+            auto localPos = radarDisplay_->convertToNodeSpace(touchPos);
+            int nearestTrackId = radarDisplay_->findNearestTrack(localPos, 20.0f);
+
+            if (nearestTrackId >= 0) {
+                onTrackSelected(nearestTrackId);
+            } else {
+                onTrackSelected(-1);
+            }
         }
         return true;
     };
@@ -197,6 +680,21 @@ void IntegratedConsoleScene::initInputHandlers()
     auto keyListener = cocos2d::EventListenerKeyboard::create();
     keyListener->onKeyPressed = [this](cocos2d::EventKeyboard::KeyCode keyCode,
                                         cocos2d::Event* event) {
+        // Welcome screen — any key dismisses
+        if (gameState_ == GameState::WELCOME && welcomeScreen_) {
+            welcomeScreen_->dismiss();
+            return;
+        }
+
+        // Restart key works in any state
+        if (keyCode == cocos2d::EventKeyboard::KeyCode::KEY_R) {
+            restartGame();
+            return;
+        }
+
+        // Game must be running for other commands
+        if (gameState_ != GameState::RUNNING) return;
+
         switch (keyCode) {
             case cocos2d::EventKeyboard::KeyCode::KEY_1:
                 onBatteryAssign("PATRIOT-1"); break;
@@ -243,8 +741,11 @@ void IntegratedConsoleScene::initInputHandlers()
 
 void IntegratedConsoleScene::update(float dt)
 {
-    if (gameOver_) return;
+    // Don't update game systems during welcome screen
+    if (gameState_ == GameState::WELCOME) return;
+    if (gameState_ == GameState::GAME_OVER) return;
 
+    updateGameTimer(dt);
     spawnAircraft(dt);
     updateAircraft(dt);
     trackManager_.update(dt);
@@ -253,7 +754,21 @@ void IntegratedConsoleScene::update(float dt)
     battalionHQ_.update(dt);
     checkEngagements(dt);
     cleanupDestroyedAircraft();
+    checkLevelComplete();
     checkGameOver();
+}
+
+void IntegratedConsoleScene::updateGameTimer(float dt)
+{
+    gameTimer_ += dt;
+    levelTimer_ -= dt;
+
+    // Update timer display on console frame
+    if (consoleFrame_) {
+        int mins = (int)gameTimer_ / 60;
+        int secs = (int)gameTimer_ % 60;
+        // Timer is displayed via the score/level system
+    }
 }
 
 void IntegratedConsoleScene::spawnAircraft(float dt)
@@ -330,12 +845,29 @@ void IntegratedConsoleScene::cleanupDestroyedAircraft()
         aircraft_.end());
 }
 
+void IntegratedConsoleScene::checkLevelComplete()
+{
+    int target = getLevelHostileTarget(gameConfig_.getLevel());
+    if (hostilesDestroyed_ >= target) {
+        if (consoleFrame_) {
+            consoleFrame_->addMessage("=== LEVEL " +
+                std::to_string(gameConfig_.getLevel()) + " COMPLETE ===");
+            consoleFrame_->addMessage("HOSTILES DESTROYED: " +
+                std::to_string(hostilesDestroyed_));
+        }
+        advanceLevel();
+    }
+}
+
 void IntegratedConsoleScene::checkGameOver()
 {
     if (score_ < -2000) {
+        gameState_ = GameState::GAME_OVER;
         gameOver_ = true;
         if (consoleFrame_) {
             consoleFrame_->addMessage("=== GAME OVER - DEFENSE FAILED ===");
+            consoleFrame_->addMessage("SCORE: " + std::to_string(score_));
+            consoleFrame_->addMessage("PRESS R TO RESTART");
         }
     }
 }
@@ -376,19 +908,29 @@ void IntegratedConsoleScene::onHostileDestroyed(Aircraft* aircraft)
 {
     int score = gameConfig_.getHostileDestroyedScore(aircraft->getType());
     addScore(score);
+    hostilesDestroyed_++;
+    aircraft->destroy();
 }
 
 void IntegratedConsoleScene::onFriendlyDestroyed(Aircraft* aircraft)
 {
     addScore(GameConstants::SCORE_FRIENDLY_DESTROYED);
+    aircraft->destroy();
+
+    // Game over on friendly kill
+    gameState_ = GameState::GAME_OVER;
+    gameOver_ = true;
     if (consoleFrame_) {
-        consoleFrame_->addMessage("*** WARNING: FRIENDLY FIRE ***");
+        consoleFrame_->addMessage("*** FRIENDLY AIRCRAFT DESTROYED ***");
+        consoleFrame_->addMessage("=== GAME OVER - FRIENDLY FIRE ===");
+        consoleFrame_->addMessage("PRESS R TO RESTART");
     }
 }
 
 void IntegratedConsoleScene::onHostilePenetrated(Aircraft* aircraft)
 {
     addScore(GameConstants::SCORE_HOSTILE_PENETRATED);
+    hostilesPenetrated_++;
     if (consoleFrame_) {
         consoleFrame_->addMessage("ALERT: HOSTILE PENETRATED DEFENSE ZONE");
     }
