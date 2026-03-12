@@ -39,20 +39,26 @@ bool ConsoleFrame::init(float scopeRadius)
     // inside a wide console housing with generous control panels on each side,
     // a writing shelf below, and status indicators along the top.
 
-    // Portrait CRT display: sized to frame the circular scope with margin
+    // Portrait CRT display: sized to frame the circular scope with margin.
+    // The glass opening is smaller than the radar sweep — the bezel hides the
+    // outer ring of the sweep, so only the inner field of play is visible.
     float scopeDia = scopeRadius * 2.0f;
-    displayW_ = scopeDia + 50.0f;              // scope + small side margins
-    displayH_ = displayW_ * 1.25f;             // portrait: 25% taller than wide
-    displayCornerR_ = 55.0f;                    // large ~5-inch rounded corners on CRT
-    displayCenterY_ = 15.0f;                    // scope slightly above center (room for shelf)
+    float fullDisplayW = scopeDia + 50.0f;      // original display width (for console sizing)
+    float bezelInset = 35.0f;                    // extra bezel width on each side
+    displayW_ = fullDisplayW - bezelInset * 2.0f; // smaller glass opening
+    displayH_ = displayW_ * 1.25f;              // portrait: 25% taller than wide
+    displayCornerR_ = 48.0f;                     // rounded corners on CRT (scaled with smaller opening)
+    displayCenterY_ = 15.0f;                     // scope slightly above center (room for shelf)
 
     // Side panels: wide for authentic control panel spacing
     panelW_ = 160.0f;
-    panelH_ = displayH_ + 30.0f;               // slightly taller than display
+    float fullDisplayH = fullDisplayW * 1.25f;
+    panelH_ = fullDisplayH + 30.0f;             // slightly taller than display
     panelGap_ = 14.0f;                          // gap between panel and display
 
     // Overall console extents — landscape: wider than tall
-    bezelW_ = displayW_ + 2.0f * (panelGap_ + panelW_) + 60.0f;
+    // Compensate for smaller displayW_ to keep outer dimensions unchanged
+    bezelW_ = fullDisplayW + 2.0f * (panelGap_ + panelW_) + 60.0f;
     bezelH_ = panelH_ + 90.0f;                 // panels + top indicators + bottom bar
 
     // Create draw layers
@@ -534,8 +540,9 @@ void ConsoleFrame::drawPortraitDisplay()
     float cy = displayCenterY_;
 
     // === Octagonal outer bezel — seafoam green to match console housing ===
-    float bezelThick = 18.0f;
-    float chamfer = 45.0f;  // 45° cut on each corner of the octagon
+    // Wide bezel: the radar sweep extends behind this, visible only through the glass
+    float bezelThick = 52.0f;
+    float chamfer = 55.0f;  // 45° cut on each corner of the octagon (wider for larger bezel)
 
     // Outer octagon shadow/border (slightly darker)
     drawOctagon(displayNode_,

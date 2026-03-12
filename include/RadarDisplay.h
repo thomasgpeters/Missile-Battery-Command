@@ -54,7 +54,8 @@ public:
     void setShowNoise(bool show) { showNoise_ = show; }
 
 private:
-    float radius_;
+    float radius_;          // Coordinate-mapping radius (aircraft at max range map here)
+    float sweepRadius_;     // Visual sweep radius (extends behind the bezel)
     float sweepAngle_;
     float prevSweepAngle_;
     int selectedTrackId_;
@@ -127,6 +128,7 @@ public:
 
 private:
     float radius_ = 0;
+    float sweepRadius_ = 0;
     float sweepAngle_ = 0;
     int selectedTrackId_ = -1;
     TrackManager* trackManager_ = nullptr;
