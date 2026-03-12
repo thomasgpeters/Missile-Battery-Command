@@ -780,36 +780,39 @@ void ConsoleFrame::drawLeftPanel()
         }
     }
 
-    // === FIRE CONTROL section (bottom of left panel) ===
-    float fireTop = keypadTop - 4 * (keyH + keyGap) - sectionGap;
+    // === FIRE CONTROL section (anchored to bottom of panel, centered) ===
+    float fbtnW = 28.0f;
+    float fbtnH = 18.0f;
+    float fbtnGap = 6.0f;
+    float fireRowStep = fbtnH + fbtnGap + 2.0f;
+    float fireSectionH = 4 * fireRowStep + 18.0f;  // 4 rows + label + padding
+    float panelBot = -hph + inset + 16.0f;          // bottom of inner recess + padding
+    float fireBot = panelBot;
+    float fireTop = fireBot + fireSectionH;
 
     auto* fireLabel = cocos2d::Label::createWithSystemFont("FIRE CONTROL", "Courier", 6);
-    fireLabel->setPosition(cocos2d::Vec2(panelCX, fireTop + 12));
+    fireLabel->setPosition(cocos2d::Vec2(panelCX, fireTop));
     fireLabel->setTextColor(cocos2d::Color4B(180, 190, 170, 200));
     panelNode_->addChild(fireLabel);
 
     // Dark recessed background for fire section
-    float fireSectionH = 4 * (btnH + gap + 4.0f) + 8.0f;
     drawRoundedRect(buttonNode_,
-                    cocos2d::Vec2(panelCX - hpw + inset + 4, fireTop - fireSectionH),
-                    cocos2d::Vec2(panelCX + hpw - inset - 4, fireTop),
+                    cocos2d::Vec2(panelCX - hpw + inset + 4, fireBot),
+                    cocos2d::Vec2(panelCX + hpw - inset - 4, fireTop - 6),
                     4.0f,
                     cocos2d::Color4F(0.10f, 0.12f, 0.09f, 1.0f),
                     cocos2d::Color4F(0.28f, 0.36f, 0.30f, 0.6f));
 
-    float fbtnW = 28.0f;
-    float fbtnH = 18.0f;
-    float fbtnGap = 6.0f;
     float row1StartX = panelCX - (3 * (fbtnW + fbtnGap) - fbtnGap) * 0.5f + fbtnW * 0.5f;
 
-    // Row 1: ENGAGE, CEASE FIRE, HOLD FIRE
+    // Row 1 (top of fire section): ENGAGE, CEASE FIRE, HOLD FIRE
     const char* fireLabels1[] = { "ENG", "C/F", "HLD" };
     cocos2d::Color4F fireColors1[] = {
         cocos2d::Color4F(0.55f, 0.20f, 0.15f, 1.0f),
         cocos2d::Color4F(0.55f, 0.50f, 0.15f, 1.0f),
         cocos2d::Color4F(0.20f, 0.50f, 0.20f, 1.0f),
     };
-    float row1Y = fireTop - 14.0f;
+    float row1Y = fireTop - 18.0f;
     for (int i = 0; i < 3; i++) {
         float bx = row1StartX + i * (fbtnW + fbtnGap);
         drawLabeledButton(buttonNode_, bx, row1Y, fbtnW, fbtnH,
@@ -823,7 +826,7 @@ void ConsoleFrame::drawLeftPanel()
         cocos2d::Color4F(0.20f, 0.50f, 0.20f, 1.0f),
         cocos2d::Color4F(0.40f, 0.45f, 0.55f, 1.0f),
     };
-    float row2Y = row1Y - fbtnH - fbtnGap - 2.0f;
+    float row2Y = row1Y - fireRowStep;
     for (int i = 0; i < 3; i++) {
         float bx = row1StartX + i * (fbtnW + fbtnGap);
         drawLabeledButton(buttonNode_, bx, row2Y, fbtnW, fbtnH,
@@ -833,7 +836,7 @@ void ConsoleFrame::drawLeftPanel()
     // Row 3: SEL, DRP, ALT
     const char* fireLabels3[] = { "SEL", "DRP", "ALT" };
     cocos2d::Color4F fireColor3(0.60f, 0.58f, 0.50f, 1.0f);
-    float row3Y = row2Y - fbtnH - fbtnGap - 2.0f;
+    float row3Y = row2Y - fireRowStep;
     for (int i = 0; i < 3; i++) {
         float bx = row1StartX + i * (fbtnW + fbtnGap);
         drawLabeledButton(buttonNode_, bx, row3Y, fbtnW, fbtnH,
@@ -842,7 +845,7 @@ void ConsoleFrame::drawLeftPanel()
 
     // Row 4: RNG, AZM, ALT
     const char* fireLabels4[] = { "RNG", "AZM", "ALT" };
-    float row4Y = row3Y - fbtnH - fbtnGap - 2.0f;
+    float row4Y = row3Y - fireRowStep;
     for (int i = 0; i < 3; i++) {
         float bx = row1StartX + i * (fbtnW + fbtnGap);
         drawLabeledButton(buttonNode_, bx, row4Y, fbtnW, fbtnH,
@@ -969,8 +972,9 @@ void ConsoleFrame::drawRightPanel()
                       btnFace, greenLit);
     }
 
-    // === CURSOR JOYSTICK (bottom of right panel) ===
-    float joyY = lowerTop - 3 * rowStep - sectionGap - 10.0f;
+    // === CURSOR JOYSTICK (anchored to bottom of right panel) ===
+    float panelBot = -hph + inset + 16.0f;          // bottom of inner recess + padding
+    float joyY = panelBot + 22.0f;                   // base plate radius up from bottom
 
     auto* joyLabel = cocos2d::Label::createWithSystemFont("CURSOR", "Courier", 6);
     joyLabel->setPosition(cocos2d::Vec2(panelCX, joyY + 30));
