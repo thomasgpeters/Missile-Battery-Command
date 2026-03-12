@@ -1065,12 +1065,81 @@ void ConsoleFrame::drawWritingBench()
                     cocos2d::Color4F(0.44f, 0.58f, 0.50f, 1.0f),
                     cocos2d::Color4F(0.32f, 0.44f, 0.38f, 1.0f));
 
-    // Writing surface (slightly lighter, worn smooth from use)
+    // Writing surface — seafoam green metal
     float surfInset = 4.0f;
+    float surfL = -hw - benchOverhang + surfInset;
+    float surfR =  hw + benchOverhang - surfInset;
+    float surfB = benchBot + surfInset;
+    float surfT = benchTop - 2;
     housingNode_->drawSolidRect(
-        cocos2d::Vec2(-hw - benchOverhang + surfInset, benchBot + surfInset),
-        cocos2d::Vec2(hw + benchOverhang - surfInset, benchTop - 2),
-        cocos2d::Color4F(0.48f, 0.62f, 0.54f, 1.0f));
+        cocos2d::Vec2(surfL, surfB),
+        cocos2d::Vec2(surfR, surfT),
+        cocos2d::Color4F(0.46f, 0.60f, 0.52f, 1.0f));
+
+    // === Plexiglass cover panels (two side-by-side) ===
+    // Each panel covers half the bench — operator can slip reference papers under
+    float plexGap = 3.0f;       // gap between the two panels
+    float plexInset = 6.0f;     // inset from surface edges
+    float plexL1 = surfL + plexInset;
+    float plexR1 = -plexGap * 0.5f;
+    float plexL2 =  plexGap * 0.5f;
+    float plexR2 = surfR - plexInset;
+    float plexB = surfB + plexInset;
+    float plexT = surfT - plexInset;
+
+    // Paper/cheat-sheet visible under left plexiglass
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL1 + 4, plexB + 2),
+        cocos2d::Vec2(plexR1 - 4, plexT - 2),
+        cocos2d::Color4F(0.82f, 0.80f, 0.72f, 0.35f));
+    // Faint text lines on the paper
+    for (float ly = plexB + 7; ly < plexT - 4; ly += 5.0f) {
+        housingNode_->drawLine(
+            cocos2d::Vec2(plexL1 + 8, ly),
+            cocos2d::Vec2(plexR1 - 8, ly),
+            cocos2d::Color4F(0.30f, 0.30f, 0.28f, 0.15f));
+    }
+
+    // Paper under right plexiglass
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL2 + 4, plexB + 2),
+        cocos2d::Vec2(plexR2 - 4, plexT - 2),
+        cocos2d::Color4F(0.82f, 0.80f, 0.72f, 0.30f));
+    for (float ly = plexB + 7; ly < plexT - 4; ly += 5.0f) {
+        housingNode_->drawLine(
+            cocos2d::Vec2(plexL2 + 8, ly),
+            cocos2d::Vec2(plexR2 - 8, ly),
+            cocos2d::Color4F(0.30f, 0.30f, 0.28f, 0.12f));
+    }
+
+    // Left plexiglass panel — slight sheen/glare
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL1, plexB),
+        cocos2d::Vec2(plexR1, plexT),
+        cocos2d::Color4F(0.70f, 0.75f, 0.72f, 0.10f));
+    housingNode_->drawRect(
+        cocos2d::Vec2(plexL1, plexB),
+        cocos2d::Vec2(plexR1, plexT),
+        cocos2d::Color4F(0.55f, 0.65f, 0.58f, 0.35f));
+    // Glare highlight across top edge
+    housingNode_->drawLine(
+        cocos2d::Vec2(plexL1 + 2, plexT - 1),
+        cocos2d::Vec2(plexR1 - 2, plexT - 1),
+        cocos2d::Color4F(0.80f, 0.85f, 0.80f, 0.18f));
+
+    // Right plexiglass panel
+    housingNode_->drawSolidRect(
+        cocos2d::Vec2(plexL2, plexB),
+        cocos2d::Vec2(plexR2, plexT),
+        cocos2d::Color4F(0.70f, 0.75f, 0.72f, 0.10f));
+    housingNode_->drawRect(
+        cocos2d::Vec2(plexL2, plexB),
+        cocos2d::Vec2(plexR2, plexT),
+        cocos2d::Color4F(0.55f, 0.65f, 0.58f, 0.35f));
+    housingNode_->drawLine(
+        cocos2d::Vec2(plexL2 + 2, plexT - 1),
+        cocos2d::Vec2(plexR2 - 2, plexT - 1),
+        cocos2d::Color4F(0.80f, 0.85f, 0.80f, 0.18f));
 
     // Surface highlight (top edge catches light)
     housingNode_->drawLine(
@@ -1083,16 +1152,6 @@ void ConsoleFrame::drawWritingBench()
         cocos2d::Vec2(-hw - benchOverhang + 2, benchBot),
         cocos2d::Vec2(hw + benchOverhang - 2, benchBot + 3),
         cocos2d::Color4F(0.38f, 0.50f, 0.42f, 1.0f));
-
-    // Pen groove / channel along front
-    housingNode_->drawLine(
-        cocos2d::Vec2(-hw * 0.3f, benchBot + 8),
-        cocos2d::Vec2(hw * 0.3f, benchBot + 8),
-        cocos2d::Color4F(0.35f, 0.46f, 0.40f, 0.6f));
-    housingNode_->drawLine(
-        cocos2d::Vec2(-hw * 0.3f, benchBot + 9),
-        cocos2d::Vec2(hw * 0.3f, benchBot + 9),
-        cocos2d::Color4F(0.50f, 0.64f, 0.55f, 0.3f));
 }
 
 // ============================================================================
