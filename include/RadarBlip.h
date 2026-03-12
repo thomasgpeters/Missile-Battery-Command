@@ -76,6 +76,9 @@ public:
     void setSelected(bool sel) { selected_ = sel; }
     bool isSelected() const { return selected_; }
 
+    // === Phosphor color ===
+    void setPhosphorColor(PhosphorColor c) { phosphorColor_ = c; }
+
 private:
     TrackData trackData_;
 
@@ -96,6 +99,9 @@ private:
     // Selection
     bool selected_;
     float selectionPulseTimer_;
+
+    // Phosphor color
+    PhosphorColor phosphorColor_;
 
     // Draw nodes
     cocos2d::DrawNode* phosphorNode_;   // Raw radar return (green tick)
@@ -144,6 +150,7 @@ private:
     float timeSinceSweep_ = 999.0f;
     bool trackOverlayEnabled_ = false;
     bool selected_ = false;
+    PhosphorColor phosphorColor_ = PhosphorColor::GREEN;
 };
 #endif
 

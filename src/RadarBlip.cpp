@@ -36,6 +36,7 @@ bool RadarBlip::init()
     trackOverlayEnabled_ = false;
     selected_ = false;
     selectionPulseTimer_ = 0.0f;
+    phosphorColor_ = PhosphorColor::GREEN;
 
     // Phosphor tick layer (raw radar return)
     phosphorNode_ = cocos2d::DrawNode::create();
@@ -140,10 +141,15 @@ void RadarBlip::drawPhosphorTick()
     // At peak intensity it's a bright, slightly elongated mark
     // As it fades, it dims and shrinks
 
-    // Core tick (bright green phosphor)
+    // Core tick (phosphor color — P1 green or P39 amber)
     float coreAlpha = intensity;
-    float coreGreen = 0.4f + 0.6f * intensity;  // brighter green at peak
-    cocos2d::Color4F coreColor(0.0f, coreGreen, 0.0f, coreAlpha);
+    float coreInt = 0.4f + 0.6f * intensity;  // brighter at peak
+    cocos2d::Color4F coreColor;
+    if (phosphorColor_ == PhosphorColor::AMBER) {
+        coreColor = cocos2d::Color4F(coreInt * 1.0f, coreInt * 0.65f, coreInt * 0.1f, coreAlpha);
+    } else {
+        coreColor = cocos2d::Color4F(0.0f, coreInt, 0.0f, coreAlpha);
+    }
 
     // Draw as a small filled circle (the "raised" phosphor dot)
     phosphorNode_->drawSolidCircle(
@@ -153,17 +159,29 @@ void RadarBlip::drawPhosphorTick()
     // Bright center point at peak
     if (intensity > 0.7f) {
         float peakAlpha = (intensity - 0.7f) / 0.3f;
-        phosphorNode_->drawSolidCircle(
-            cocos2d::Vec2::ZERO, size * 0.5f, 0, 6,
-            cocos2d::Color4F(0.3f * peakAlpha, 1.0f, 0.3f * peakAlpha, peakAlpha));
+        if (phosphorColor_ == PhosphorColor::AMBER) {
+            phosphorNode_->drawSolidCircle(
+                cocos2d::Vec2::ZERO, size * 0.5f, 0, 6,
+                cocos2d::Color4F(1.0f, 0.85f * peakAlpha, 0.3f * peakAlpha, peakAlpha));
+        } else {
+            phosphorNode_->drawSolidCircle(
+                cocos2d::Vec2::ZERO, size * 0.5f, 0, 6,
+                cocos2d::Color4F(0.3f * peakAlpha, 1.0f, 0.3f * peakAlpha, peakAlpha));
+        }
     }
 
     // Phosphor glow halo (faint bloom around the tick)
     if (intensity > 0.15f) {
         float glowAlpha = intensity * 0.2f;
+        cocos2d::Color4F glowColor;
+        if (phosphorColor_ == PhosphorColor::AMBER) {
+            glowColor = cocos2d::Color4F(0.5f, 0.33f, 0.05f, glowAlpha);
+        } else {
+            glowColor = cocos2d::Color4F(0.0f, 0.5f, 0.0f, glowAlpha);
+        }
         phosphorNode_->drawSolidCircle(
             cocos2d::Vec2::ZERO, size * 2.0f + 2.0f, 0, 10,
-            cocos2d::Color4F(0.0f, 0.5f, 0.0f, glowAlpha));
+            glowColor);
     }
 }
 
