@@ -5,10 +5,10 @@
 #include <functional>
 
 // ============================================================================
-// WelcomeScreen — Title screen overlay
+// WelcomeScreen — Octagonal modal dialog overlay
 //
-// Displays on game start with the AN/TSQ-73 title banner and copyright.
-// Click or press any key to dismiss and begin the game.
+// Displays on game start as a framed octagonal dialog with the console
+// visible but faded behind it. Click or press any key to dismiss.
 // ============================================================================
 
 #if USE_COCOS2DX
@@ -28,10 +28,19 @@ private:
     std::function<void()> onDismiss_;
     bool dismissed_;
 
-    void drawBackground();
-    void drawTitleBanner();
-    void drawCopyright();
+    void drawFadedOverlay();
+    void drawOctagonalDialog();
+    void drawTitleContent();
     void drawPrompt();
+
+    // Octagon helper — rectangle with 45-degree chamfered corners
+    void drawOctagon(cocos2d::DrawNode* node,
+                     const cocos2d::Vec2& origin,
+                     const cocos2d::Vec2& dest,
+                     float chamfer,
+                     const cocos2d::Color4F& fill,
+                     const cocos2d::Color4F& border,
+                     float borderWidth = 1.5f);
 };
 
 #else

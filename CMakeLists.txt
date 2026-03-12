@@ -105,31 +105,82 @@ set(GAME_HEADERS
 )
 
 # ============================================================================
-# Build Target
+# Build Target — macOS App Bundle when cocos2d-x is available
 # ============================================================================
-add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${GAME_HEADERS})
+if(APPLE AND COCOS2D_FOUND)
+    # Build as a macOS .app bundle for self-contained distribution
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${GAME_SOURCES} ${GAME_HEADERS})
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/macos/Info.plist.in"
+        MACOSX_BUNDLE_BUNDLE_NAME "Missile Battery Command"
+        MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.imagerybusinesssystems.missilebatterycommand"
+        MACOSX_BUNDLE_COPYRIGHT "© 2026 Imagery Business Systems, LLC"
+        MACOSX_BUNDLE_ICON_FILE "AppIcon"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.imagerybusinesssystems.missilebatterycommand"
+        XCODE_ATTRIBUTE_INFOPLIST_KEY_CFBundleDisplayName "Missile Battery Command"
+    )
+
+    # Embed dynamic libraries inside the app bundle Frameworks directory
+    # This makes the app self-contained — users don't need to install dependencies
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        BUILD_RPATH "@executable_path/../Frameworks"
+        INSTALL_RPATH "@executable_path/../Frameworks"
+        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/../Frameworks"
+    )
+
+    # Copy Resources into the app bundle
+    if(EXISTS "${CMAKE_SOURCE_DIR}/Resources")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Resources"
+            "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Resources"
+        )
+    endif()
+
+    # Post-build: copy any cocos2d-x dylibs into Frameworks and fix install names
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Frameworks"
+        COMMENT "Creating Frameworks directory in app bundle"
+    )
+
+    # If cocos2d-x builds shared libraries, embed them
+    if(TARGET cocos2d AND BUILD_SHARED_LIBS)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:cocos2d>"
+                "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Frameworks/"
+            COMMENT "Embedding cocos2d dylib in app bundle"
+        )
+    endif()
+else()
+    # Non-macOS or stub mode: plain executable
+    add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${GAME_HEADERS})
+
+    if(EXISTS "${CMAKE_SOURCE_DIR}/Resources")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Resources"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
+        )
+    endif()
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
 if(COCOS2D_FOUND)
+    # Prefer static linking for self-contained app bundle
     target_link_libraries(${PROJECT_NAME} cocos2d)
     target_compile_definitions(${PROJECT_NAME} PRIVATE USE_COCOS2DX=1)
 else()
     # Stub mode: compile without cocos2d-x for code validation
     target_compile_definitions(${PROJECT_NAME} PRIVATE USE_COCOS2DX=0)
-endif()
-
-# ============================================================================
-# Resource Copying
-# ============================================================================
-if(EXISTS "${CMAKE_SOURCE_DIR}/Resources")
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/Resources"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
 endif()
 
 # ============================================================================
