@@ -62,6 +62,7 @@ bool ConsoleFrame::init(float scopeRadius)
     bezelH_ = panelH_ + 90.0f;                 // panels + top indicators + bottom bar
 
     // Create draw layers
+    backgroundNode_ = cocos2d::DrawNode::create();
     housingNode_ = cocos2d::DrawNode::create();
     displayNode_ = cocos2d::DrawNode::create();
     panelNode_   = cocos2d::DrawNode::create();
@@ -69,6 +70,7 @@ bool ConsoleFrame::init(float scopeRadius)
     dynamicNode_ = cocos2d::DrawNode::create();
     labelNode_   = cocos2d::Node::create();
 
+    addChild(backgroundNode_, -1);
     addChild(housingNode_,  0);
     addChild(displayNode_,  1);
     addChild(panelNode_,    2);
@@ -289,7 +291,7 @@ void ConsoleFrame::drawShelterBackground()
     float sceneH = 600.0f;
 
     // Overall dark interior
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, -sceneH),
         cocos2d::Vec2(sceneW, sceneH),
         cocos2d::Color4F(0.04f, 0.05f, 0.04f, 1.0f));
@@ -313,19 +315,19 @@ void ConsoleFrame::drawShelterBackground()
         float cx = startX + i * (cabW + cabGap);
 
         // Cabinet face — dark steel
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2(cx, cabBot),
             cocos2d::Vec2(cx + cabW, cabTop),
             (i % 3 == 0) ? cabDark : cabMid);
 
         // Cabinet border lines (recessed seams between panels)
-        housingNode_->drawLine(
+        backgroundNode_->drawLine(
             cocos2d::Vec2(cx, cabBot), cocos2d::Vec2(cx, cabTop), cabBorder);
-        housingNode_->drawLine(
+        backgroundNode_->drawLine(
             cocos2d::Vec2(cx + cabW, cabBot), cocos2d::Vec2(cx + cabW, cabTop), cabBorder);
 
         // Vertical edge highlight (left side catches faint light)
-        housingNode_->drawLine(
+        backgroundNode_->drawLine(
             cocos2d::Vec2(cx + 1, cabBot + 10), cocos2d::Vec2(cx + 1, cabTop - 10),
             cocos2d::Color4F(0.14f, 0.16f, 0.14f, 0.3f));
 
@@ -333,13 +335,13 @@ void ConsoleFrame::drawShelterBackground()
         float sectionH = (cabTop - cabBot) / 3.0f;
         for (int s = 1; s < 3; s++) {
             float divY = cabBot + s * sectionH;
-            housingNode_->drawLine(
+            backgroundNode_->drawLine(
                 cocos2d::Vec2(cx + 4, divY),
                 cocos2d::Vec2(cx + cabW - 4, divY),
                 cabBorder);
             // Small handle/latch detail on each section
             float handleY = divY - sectionH * 0.5f;
-            housingNode_->drawSolidRect(
+            backgroundNode_->drawSolidRect(
                 cocos2d::Vec2(cx + cabW * 0.35f, handleY - 2),
                 cocos2d::Vec2(cx + cabW * 0.65f, handleY + 2),
                 cocos2d::Color4F(0.16f, 0.17f, 0.15f, 0.5f));
@@ -350,7 +352,7 @@ void ConsoleFrame::drawShelterBackground()
             float ventTop = cabTop - 15.0f;
             for (int v = 0; v < 4; v++) {
                 float vy = ventTop - v * 6.0f;
-                housingNode_->drawLine(
+                backgroundNode_->drawLine(
                     cocos2d::Vec2(cx + 10, vy),
                     cocos2d::Vec2(cx + cabW - 10, vy),
                     cocos2d::Color4F(0.03f, 0.03f, 0.03f, 0.6f));
@@ -359,14 +361,14 @@ void ConsoleFrame::drawShelterBackground()
     }
 
     // === Ceiling ===
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, cabTop),
         cocos2d::Vec2(sceneW, sceneH),
         cocos2d::Color4F(0.06f, 0.07f, 0.06f, 1.0f));
 
     // Ceiling structural ribs
     for (int cx = -700; cx <= 700; cx += 200) {
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2((float)cx - 3, cabTop),
             cocos2d::Vec2((float)cx + 3, sceneH),
             cocos2d::Color4F(0.08f, 0.09f, 0.08f, 1.0f));
@@ -374,25 +376,25 @@ void ConsoleFrame::drawShelterBackground()
 
     // Red night ops light strips (dimmer, more subtle)
     for (int lx = -500; lx <= 500; lx += 250) {
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2((float)lx - 15.0f, sceneH - 30.0f),
             cocos2d::Vec2((float)lx + 15.0f, sceneH - 26.0f),
             cocos2d::Color4F(0.22f, 0.04f, 0.04f, 0.5f));
         // Red light glow cone downward
-        housingNode_->drawSolidRect(
+        backgroundNode_->drawSolidRect(
             cocos2d::Vec2((float)lx - 40.0f, sceneH - 60.0f),
             cocos2d::Vec2((float)lx + 40.0f, sceneH - 30.0f),
             cocos2d::Color4F(0.12f, 0.03f, 0.03f, 0.15f));
     }
 
     // === Floor ===
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, -sceneH),
         cocos2d::Vec2(sceneW, cabBot),
         cocos2d::Color4F(0.04f, 0.04f, 0.03f, 1.0f));
 
     // Floor highlight (rubber matting sheen)
-    housingNode_->drawSolidRect(
+    backgroundNode_->drawSolidRect(
         cocos2d::Vec2(-sceneW, cabBot - 2),
         cocos2d::Vec2(sceneW, cabBot),
         cocos2d::Color4F(0.08f, 0.08f, 0.07f, 0.5f));

@@ -89,6 +89,7 @@ private:
     static const int MAX_MESSAGES = 6;
 
     // Draw nodes (layered)
+    cocos2d::DrawNode* backgroundNode_;  // Static: shelter background (behind everything)
     cocos2d::DrawNode* housingNode_;     // Static: console housing, chassis
     cocos2d::DrawNode* displayNode_;     // Static: portrait display viewport
     cocos2d::DrawNode* panelNode_;       // Static: side control panels
