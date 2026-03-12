@@ -144,13 +144,13 @@ void IntegratedConsoleScene::restartGame()
 {
     // Clear all aircraft and tracks
     aircraft_.clear();
-    trackManager_ = TrackManager();
-    fireControlSystem_ = FireControlSystem();
+    trackManager_.reset();
+    fireControlSystem_.reset();
     fireControlSystem_.init();
 
     // Reset to level 1
     gameConfig_.setLevel(1);
-    aircraftGenerator_ = AircraftGenerator();
+    aircraftGenerator_.reset();
     aircraftGenerator_.init(1);
     trackManager_.getIFFSystem().setErrorRate(gameConfig_.getIFFErrorRate());
 
@@ -190,7 +190,7 @@ void IntegratedConsoleScene::advanceLevel()
     }
 
     gameConfig_.setLevel(nextLevel);
-    aircraftGenerator_ = AircraftGenerator();
+    aircraftGenerator_.reset();
     aircraftGenerator_.init(nextLevel);
     trackManager_.getIFFSystem().setErrorRate(gameConfig_.getIFFErrorRate());
 
