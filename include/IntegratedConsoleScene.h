@@ -10,11 +10,23 @@
 #include "GameConfig.h"
 #include "ThreatBoard.h"
 #include "BattalionHQ.h"
+#include "DrawerBook.h"
+#include "WelcomeScreen.h"
 #include <vector>
 #include <memory>
 
 #if USE_COCOS2DX
 #include "cocos2d.h"
+
+// ============================================================================
+// Game state machine
+// ============================================================================
+enum class GameState {
+    WELCOME,        // Title/welcome screen displayed
+    RUNNING,        // Game in progress
+    GAME_OVER,      // Game ended (loss condition)
+    LEVEL_COMPLETE  // Current level cleared
+};
 
 // ============================================================================
 // IntegratedConsoleScene — single AN/TSQ-73 console with all information
@@ -23,17 +35,9 @@
 // Layout:
 //   - Center: PPI radar scope (RadarDisplay)
 //   - Console housing: bezel, knobs, indicator LEDs (ConsoleFrame)
-//   - Left panel:  Live track table
-//   - Right panel: Battery status, HQ status, threat count
-//   - Bottom bar:  Score, level, latest message
-//
-// Node hierarchy:
-//   IntegratedConsoleScene (Scene)
-//     └─ ConsoleFrame (z:0) — housing, background, live data panels
-//     └─ RadarDisplay (z:1) — PPI scope, blips, sweep, trails
-//
-// This replaces both RadarScene (radar + separate HUD) and any dual-console
-// scene. Everything is integrated into a single console view.
+//   - Left drawer:  Fire control reference book
+//   - Right drawer: Settings/instructions reference book
+//   - Bottom bar:  Score, level, timer, latest message
 // ============================================================================
 
 class IntegratedConsoleScene : public cocos2d::Scene {
@@ -57,14 +61,37 @@ private:
     RadarDisplay* radarDisplay_;
     ConsoleFrame* consoleFrame_;
 
+    // Drawer reference books
+    DrawerBook* leftDrawer_;
+    DrawerBook* rightDrawer_;
+
+    // Welcome screen
+    WelcomeScreen* welcomeScreen_;
+
     // Game state
+    GameState gameState_;
     int score_;
     bool gameOver_;
+    float gameTimer_;           // Elapsed game time in seconds
+    float levelTimer_;          // Time remaining in current level
+    int hostilesPenetrated_;    // Count for game-over condition
+    int hostilesDestroyed_;     // Count for level-complete condition
     std::vector<std::unique_ptr<Aircraft>> aircraft_;
 
     // Initialization
     void initConsole();
+    void initDrawers();
     void initInputHandlers();
+    void initWelcomeScreen();
+    void populateFireControlBook();
+    void populateSettingsBook();
+
+    // Game flow
+    void startGame();
+    void restartGame();
+    void advanceLevel();
+    float getLevelDuration(int level) const;
+    int getLevelHostileTarget(int level) const;
 
     // Game loop
     void spawnAircraft(float dt);
@@ -72,6 +99,8 @@ private:
     void checkEngagements(float dt);
     void cleanupDestroyedAircraft();
     void checkGameOver();
+    void checkLevelComplete();
+    void updateGameTimer(float dt);
 
     // Input handling
     void onTrackSelected(int trackId);
@@ -92,6 +121,8 @@ private:
 // ============================================================================
 // Stub IntegratedConsoleScene (no cocos2d-x)
 // ============================================================================
+enum class GameState { WELCOME, RUNNING, GAME_OVER, LEVEL_COMPLETE };
+
 class IntegratedConsoleScene {
 public:
     static IntegratedConsoleScene* create();
@@ -106,8 +137,13 @@ private:
     ThreatBoard threatBoard_;
     BattalionHQ battalionHQ_;
 
+    GameState gameState_ = GameState::WELCOME;
     int score_ = 0;
     bool gameOver_ = false;
+    float gameTimer_ = 0;
+    float levelTimer_ = 0;
+    int hostilesPenetrated_ = 0;
+    int hostilesDestroyed_ = 0;
     std::vector<std::unique_ptr<Aircraft>> aircraft_;
 
     IntegratedConsoleScene() = default;
