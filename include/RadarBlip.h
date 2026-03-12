@@ -14,8 +14,11 @@
 // Models the authentic CRT phosphor behavior of the AN/TSQ-73:
 //   - The blip is INVISIBLE until the rotating sweep beam paints it
 //   - On contact, the phosphor "tick" flares bright green then decays
-//   - IFF interrogation enables a track data overlay (classification,
-//     track ID, altitude, speed, heading) that follows the blip
+//   - The track overlay (classification, track ID, altitude, speed,
+//     heading) persists on screen continuously — independent of the
+//     sweep pulse which only affects the raw radar return (blip)
+//   - Tracks are removed when the aircraft goes out of range or is
+//     no longer present (handled by TrackManager)
 //   - The track overlay uses classification color coding:
 //       HOSTILE=red, FRIENDLY=blue, UNKNOWN=yellow, PENDING=gray
 //

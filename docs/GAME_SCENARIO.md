@@ -168,12 +168,31 @@ your defended area:
 
 ### IFF (Identification Friend or Foe)
 
-All tracks start as PENDING. Your IFF system (Mode 4 interrogation) takes time
-to classify each track. The system has an error rate that increases with
-difficulty level — at higher levels, the IFF may misidentify a hostile as
-friendly or vice versa. You must cross-reference altitude, speed, heading, and
-behavior to make engagement decisions. Shooting down a friendly or civilian
-aircraft is the worst outcome in the game.
+All tracks start as **PENDING**. The AN/TSQ-73 automatically sends a Mode 4
+IFF interrogation to each new track, which takes approximately 2 seconds to
+complete.
+
+**The squawk principle:** Friendly aircraft carry IFF transponders that
+respond ("squawk") to Mode 4 interrogation with valid authentication codes.
+When the AN/TSQ-73 receives a positive squawk response, the contact is
+classified FRIENDLY. Hostile aircraft do not carry friendly IFF transponders
+— they have no valid squawk response. The absence of a squawk is what
+identifies a contact as HOSTILE.
+
+| IFF Result | Meaning | Display |
+|------------|---------|---------|
+| PENDING | Not yet interrogated (~2 sec delay) | Gray square |
+| FRIENDLY | Valid Mode 4 squawk received | Blue circle |
+| HOSTILE | No squawk response | Red diamond |
+| UNKNOWN | Inconclusive / jammed / stealth | Yellow square |
+
+**IFF errors:** The system has an error rate that increases with difficulty
+level — at higher levels, the IFF may misidentify a hostile as friendly or
+vice versa. Stealth aircraft have a 30% chance of returning UNKNOWN even
+when hostile, due to their reduced electronic signature. You must
+cross-reference altitude, speed, heading, and behavior to make engagement
+decisions. Shooting down a friendly or civilian aircraft is the worst
+outcome in the game.
 
 ## Scoring
 
