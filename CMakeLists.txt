@@ -12,18 +12,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT DEFINED COCOS2DX_ROOT)
     if(DEFINED ENV{COCOS2DX_ROOT})
         set(COCOS2DX_ROOT $ENV{COCOS2DX_ROOT})
+        message(STATUS "Using COCOS2DX_ROOT from environment: ${COCOS2DX_ROOT}")
     else()
-        # Default search paths
+        # Search common macOS installation locations
         set(COCOS2DX_SEARCH_PATHS
             "${CMAKE_SOURCE_DIR}/cocos2d-x"
             "${CMAKE_SOURCE_DIR}/external/cocos2d-x"
+            "${CMAKE_SOURCE_DIR}/../cocos2d-x"
             "$ENV{HOME}/cocos2d-x"
+            "$ENV{HOME}/Developer/cocos2d-x"
+            "$ENV{HOME}/Developer/C-Projects/cocos2d-x"
+            "$ENV{HOME}/Projects/cocos2d-x"
+            "$ENV{HOME}/src/cocos2d-x"
             "/usr/local/lib/cocos2d-x"
+            "/usr/local/cocos2d-x"
+            "/opt/cocos2d-x"
+            "/opt/homebrew/opt/cocos2d-x"
         )
+        message(STATUS "COCOS2DX_ROOT not set. Searching common locations...")
         foreach(SEARCH_PATH ${COCOS2DX_SEARCH_PATHS})
             if(EXISTS "${SEARCH_PATH}/CMakeLists.txt")
                 set(COCOS2DX_ROOT "${SEARCH_PATH}")
+                message(STATUS "  Found cocos2d-x at: ${SEARCH_PATH}")
                 break()
+            else()
+                message(STATUS "  Not found at: ${SEARCH_PATH}")
             endif()
         endforeach()
     endif()
@@ -44,11 +57,23 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     set(COCOS2D_FOUND TRUE)
 else()
     message(WARNING
-        "cocos2d-x not found. Building in STUB mode for development.\n"
-        "To build with cocos2d-x:\n"
-        "  1. Download cocos2d-x from https://cocos2d-x.org/download\n"
-        "  2. Extract to ${CMAKE_SOURCE_DIR}/cocos2d-x\n"
-        "  3. Or set -DCOCOS2DX_ROOT=/path/to/cocos2d-x\n"
+        "cocos2d-x NOT FOUND — Building in STUB mode (no GUI).\n"
+        "\n"
+        "To build with GUI mode, do ONE of the following:\n"
+        "\n"
+        "  Option 1: Pass the path directly to CMake:\n"
+        "    cmake -DCOCOS2DX_ROOT=/path/to/cocos2d-x ..\n"
+        "\n"
+        "  Option 2: Set the environment variable:\n"
+        "    export COCOS2DX_ROOT=/path/to/cocos2d-x\n"
+        "    cmake ..\n"
+        "\n"
+        "  Option 3: Symlink into the project:\n"
+        "    ln -s /path/to/cocos2d-x ${CMAKE_SOURCE_DIR}/cocos2d-x\n"
+        "    cmake ..\n"
+        "\n"
+        "  To find your cocos2d-x installation:\n"
+        "    find ~ -name 'cocos2d-x' -type d -maxdepth 4 2>/dev/null\n"
     )
     set(COCOS2D_FOUND FALSE)
 endif()
