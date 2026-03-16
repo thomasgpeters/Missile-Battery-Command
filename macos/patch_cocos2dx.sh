@@ -88,59 +88,90 @@ fi
 # Fix 4: AudioCache.h — add missing _loadCallbacks, _playCallbacks members
 #         and addLoadCallback declaration
 # ==========================================================================
-AUDIO_CACHE_H="$COCOS_DIR/cocos/audio/include/AudioCache.h"
-# Also check alternate location
-if [ ! -f "$AUDIO_CACHE_H" ]; then
-    AUDIO_CACHE_H="$COCOS_DIR/cocos/audio/AudioCache.h"
+# Search all possible locations for the apple AudioCache.h
+AUDIO_CACHE_H=""
+for CANDIDATE in \
+    "$COCOS_DIR/cocos/audio/apple/AudioCache.h" \
+    "$COCOS_DIR/cocos/audio/include/AudioCache.h" \
+    "$COCOS_DIR/cocos/audio/AudioCache.h"; do
+    if [ -f "$CANDIDATE" ]; then
+        AUDIO_CACHE_H="$CANDIDATE"
+        break
+    fi
+done
+
+# Last resort: find it
+if [ -z "$AUDIO_CACHE_H" ]; then
+    AUDIO_CACHE_H=$(find "$COCOS_DIR" -path "*/audio/apple/AudioCache.h" -type f 2>/dev/null | head -1)
 fi
 
 if [ -f "$AUDIO_CACHE_H" ]; then
-    echo "[CHECK] AudioCache.h"
+    echo "[CHECK] AudioCache.h ($AUDIO_CACHE_H)"
 
-    # Add _loadCallbacks if missing
+    # Add _loadCallbacks if missing — append before final }; of class
     if ! grep -q '_loadCallbacks' "$AUDIO_CACHE_H"; then
-        echo "[PATCH]   Adding _loadCallbacks member"
-        # Insert before the closing }; of the class
-        # Find _callbacks or any existing std::vector/std::function member, or the last private: section
+        echo "[PATCH]   Adding _loadCallbacks and _playCallbacks members"
+        # Use a simple approach: find the last }; and insert before it
         perl -0777 -pi -e '
-            # Add members before the final closing brace of the class
-            s/((\s*)(std::mutex\s+_callbackMutex;))/$1\n$2std::vector<std::function<void(bool)>> _loadCallbacks;\n$2std::vector<std::function<void()>> _playCallbacks;/s
-                or
-            # Fallback: add before closing brace
-            s/(\n\};)(\s*\n\s*#endif)/\n    std::vector<std::function<void(bool)>> _loadCallbacks;\n    std::vector<std::function<void()>> _playCallbacks;$1$2/s;
+            s/(\n\s*\}\s*;?\s*\n(?:#endif|\n|$))/\n    std::vector<std::function<void(bool)>> _loadCallbacks;\n    std::vector<std::function<void()>> _playCallbacks;\n$1/s;
         ' "$AUDIO_CACHE_H"
+
+        # Verify it was added
+        if grep -q '_loadCallbacks' "$AUDIO_CACHE_H"; then
+            echo "          -> Success"
+        else
+            # Absolute fallback: just append before the last line containing };
+            echo "          -> Perl failed, trying sed fallback"
+            # Find the last }; line number and insert before it
+            LAST_BRACE=$(grep -n '};' "$AUDIO_CACHE_H" | tail -1 | cut -d: -f1)
+            if [ -n "$LAST_BRACE" ]; then
+                sed -i '' "${LAST_BRACE}i\\
+    std::vector<std::function<void(bool)>> _loadCallbacks;\\
+    std::vector<std::function<void()>> _playCallbacks;
+" "$AUDIO_CACHE_H"
+                echo "          -> Inserted at line $LAST_BRACE"
+            fi
+        fi
         PATCHED=$((PATCHED + 1))
     else
         echo "[OK]      _loadCallbacks already present"
     fi
 
-    # Add _playCallbacks if missing (might have been added above)
-    if ! grep -q '_playCallbacks' "$AUDIO_CACHE_H"; then
-        echo "[PATCH]   Adding _playCallbacks member"
-        perl -pi -e 's/(_loadCallbacks;)/$1\n    std::vector<std::function<void()>> _playCallbacks;/' "$AUDIO_CACHE_H"
-        PATCHED=$((PATCHED + 1))
-    fi
-
     # Add addLoadCallback declaration if missing
     if ! grep -q 'addLoadCallback' "$AUDIO_CACHE_H"; then
         echo "[PATCH]   Adding addLoadCallback declaration"
-        # Add after addPlayCallback or any existing public method
         if grep -q 'addPlayCallback' "$AUDIO_CACHE_H"; then
-            perl -pi -e 's/(void addPlayCallback.*?;)/$1\n    void addLoadCallback(const std::function<void(bool)>\& callback);/' "$AUDIO_CACHE_H"
+            # Insert after addPlayCallback line
+            sed -i '' '/addPlayCallback/a\
+    void addLoadCallback(const std::function<void(bool)>\& callback);
+' "$AUDIO_CACHE_H"
         else
-            # Add before first private: or protected:
-            perl -pi -e 's/(private:|protected:)/void addLoadCallback(const std::function<void(bool)>\& callback);\n\n    $1/' "$AUDIO_CACHE_H"
+            # Insert before the _loadCallbacks member we just added
+            sed -i '' '/_loadCallbacks/i\
+    void addLoadCallback(const std::function<void(bool)>\& callback);
+' "$AUDIO_CACHE_H"
         fi
         PATCHED=$((PATCHED + 1))
     else
         echo "[OK]      addLoadCallback already declared"
     fi
 
+    # Ensure <functional> and <vector> are included
+    if ! grep -q '#include <functional>' "$AUDIO_CACHE_H"; then
+        sed -i '' '1,/#include/{
+            /^#include/a\
+#include <functional>\
+#include <vector>
+        }' "$AUDIO_CACHE_H"
+        echo "[PATCH]   Added #include <functional> and <vector>"
+        PATCHED=$((PATCHED + 1))
+    fi
+
     echo "  Verify:"
     grep -n '_loadCallbacks\|_playCallbacks\|addLoadCallback' "$AUDIO_CACHE_H" 2>/dev/null || echo "  WARNING: members not found after patch"
 else
-    echo "[SKIP]  AudioCache.h not found at expected locations"
-    echo "        Searching..."
+    echo "[SKIP]  AudioCache.h not found anywhere"
+    echo "        Searched: $COCOS_DIR/cocos/audio/"
     find "$COCOS_DIR" -name "AudioCache.h" -type f 2>/dev/null
 fi
 
