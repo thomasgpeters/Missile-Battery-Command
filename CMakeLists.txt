@@ -51,6 +51,16 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     # on modern Xcode/AppleClang.
     set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
 
+    # Skip building cocos2d-x test/template projects — they have linker
+    # issues and we only need the cocos2d library itself.
+    set(BUILD_CPP_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_CPP_EMPTY_TEST OFF CACHE BOOL "" FORCE)
+    set(BUILD_LUA_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_LUA_EMPTY_TEST OFF CACHE BOOL "" FORCE)
+    set(BUILD_CPP_TEMPLATES OFF CACHE BOOL "" FORCE)
+    set(BUILD_LUA_TEMPLATES OFF CACHE BOOL "" FORCE)
+    set(BUILD_JS_TESTS OFF CACHE BOOL "" FORCE)
+
     # Set internal variables that cocos2d-x's sub-CMakeLists expect.
     set(COCOS2DX_ROOT_PATH "${COCOS2DX_ROOT}")
     set(ENGINE_BINARY_PATH "${CMAKE_BINARY_DIR}/engine")
@@ -63,6 +73,11 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     # Disable PCH on cocos2d target directly (belt and suspenders)
     if(TARGET cocos2d)
         set_target_properties(cocos2d PROPERTIES DISABLE_PRECOMPILE_HEADERS ON)
+    endif()
+
+    # Link system zlib on macOS (needed for ZipUtils, arm64)
+    if(APPLE)
+        find_package(ZLIB REQUIRED)
     endif()
 
     set(COCOS2D_FOUND TRUE)
@@ -214,6 +229,10 @@ if(COCOS2D_FOUND)
     # Prefer static linking for self-contained app bundle
     target_link_libraries(${PROJECT_NAME} cocos2d)
     target_compile_definitions(${PROJECT_NAME} PRIVATE USE_COCOS2DX=1)
+    # Link system zlib on macOS (uncompress symbol needed by ZipUtils)
+    if(APPLE AND ZLIB_FOUND)
+        target_link_libraries(${PROJECT_NAME} ZLIB::ZLIB)
+    endif()
 else()
     # Stub mode: compile without cocos2d-x for code validation
     target_compile_definitions(${PROJECT_NAME} PRIVATE USE_COCOS2DX=0)
