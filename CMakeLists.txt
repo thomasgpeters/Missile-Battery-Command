@@ -51,24 +51,20 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     # on modern Xcode/AppleClang.
     set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
 
-    # Skip building cocos2d-x test/template projects — they have linker
-    # issues and we only need the cocos2d library itself.
-    set(BUILD_CPP_TESTS OFF CACHE BOOL "" FORCE)
-    set(BUILD_CPP_EMPTY_TEST OFF CACHE BOOL "" FORCE)
-    set(BUILD_LUA_TESTS OFF CACHE BOOL "" FORCE)
-    set(BUILD_LUA_EMPTY_TEST OFF CACHE BOOL "" FORCE)
-    set(BUILD_CPP_TEMPLATES OFF CACHE BOOL "" FORCE)
-    set(BUILD_LUA_TEMPLATES OFF CACHE BOOL "" FORCE)
-    set(BUILD_JS_TESTS OFF CACHE BOOL "" FORCE)
+    # Skip building cocos2d-x test/template projects — we only need
+    # the cocos2d library itself. The actual variable is BUILD_TESTS.
+    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_LUA_LIBS OFF CACHE BOOL "" FORCE)
+    set(BUILD_JS_LIBS OFF CACHE BOOL "" FORCE)
 
     # Set internal variables that cocos2d-x's sub-CMakeLists expect.
     set(COCOS2DX_ROOT_PATH "${COCOS2DX_ROOT}")
     set(ENGINE_BINARY_PATH "${CMAKE_BINARY_DIR}/engine")
     set(EXTERNAL_DIR "${COCOS2DX_ROOT}/external")
 
-    # Include cocos2d-x from its root so all internal variables and macros
-    # (use_cocos2dx_compile_define, etc.) are properly initialized.
-    add_subdirectory(${COCOS2DX_ROOT} ${ENGINE_BINARY_PATH}/cocos2d-x)
+    # Include cocos2d-x from its root. EXCLUDE_FROM_ALL ensures only
+    # targets our game depends on (cocos2d lib) are built.
+    add_subdirectory(${COCOS2DX_ROOT} ${ENGINE_BINARY_PATH}/cocos2d-x EXCLUDE_FROM_ALL)
 
     # Disable PCH on cocos2d target directly (belt and suspenders)
     if(TARGET cocos2d)
