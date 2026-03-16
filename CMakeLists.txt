@@ -46,6 +46,11 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     message(STATUS "Found cocos2d-x at: ${COCOS2DX_ROOT}")
     set(BUILD_ENGINE_DONE ON)
 
+    # Disable precompiled headers — cocos2d-x PCH is built as C++ but
+    # .mm (Objective-C++) files need ObjC enabled, causing a mismatch
+    # on modern Xcode/AppleClang.
+    set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
+
     # Set internal variables that cocos2d-x's sub-CMakeLists expect.
     set(COCOS2DX_ROOT_PATH "${COCOS2DX_ROOT}")
     set(ENGINE_BINARY_PATH "${CMAKE_BINARY_DIR}/engine")
@@ -54,6 +59,12 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     # Include cocos2d-x from its root so all internal variables and macros
     # (use_cocos2dx_compile_define, etc.) are properly initialized.
     add_subdirectory(${COCOS2DX_ROOT} ${ENGINE_BINARY_PATH}/cocos2d-x)
+
+    # Disable PCH on cocos2d target directly (belt and suspenders)
+    if(TARGET cocos2d)
+        set_target_properties(cocos2d PROPERTIES DISABLE_PRECOMPILE_HEADERS ON)
+    endif()
+
     set(COCOS2D_FOUND TRUE)
 else()
     message(WARNING
