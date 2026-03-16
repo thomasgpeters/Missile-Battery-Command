@@ -12,18 +12,31 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT DEFINED COCOS2DX_ROOT)
     if(DEFINED ENV{COCOS2DX_ROOT})
         set(COCOS2DX_ROOT $ENV{COCOS2DX_ROOT})
+        message(STATUS "Using COCOS2DX_ROOT from environment: ${COCOS2DX_ROOT}")
     else()
-        # Default search paths
+        # Search common macOS installation locations
         set(COCOS2DX_SEARCH_PATHS
             "${CMAKE_SOURCE_DIR}/cocos2d-x"
             "${CMAKE_SOURCE_DIR}/external/cocos2d-x"
+            "${CMAKE_SOURCE_DIR}/../cocos2d-x"
             "$ENV{HOME}/cocos2d-x"
+            "$ENV{HOME}/Developer/cocos2d-x"
+            "$ENV{HOME}/Developer/C-Projects/cocos2d-x"
+            "$ENV{HOME}/Projects/cocos2d-x"
+            "$ENV{HOME}/src/cocos2d-x"
             "/usr/local/lib/cocos2d-x"
+            "/usr/local/cocos2d-x"
+            "/opt/cocos2d-x"
+            "/opt/homebrew/opt/cocos2d-x"
         )
+        message(STATUS "COCOS2DX_ROOT not set. Searching common locations...")
         foreach(SEARCH_PATH ${COCOS2DX_SEARCH_PATHS})
             if(EXISTS "${SEARCH_PATH}/CMakeLists.txt")
                 set(COCOS2DX_ROOT "${SEARCH_PATH}")
+                message(STATUS "  Found cocos2d-x at: ${SEARCH_PATH}")
                 break()
+            else()
+                message(STATUS "  Not found at: ${SEARCH_PATH}")
             endif()
         endforeach()
     endif()
@@ -44,11 +57,23 @@ if(COCOS2DX_ROOT AND EXISTS "${COCOS2DX_ROOT}/CMakeLists.txt")
     set(COCOS2D_FOUND TRUE)
 else()
     message(WARNING
-        "cocos2d-x not found. Building in STUB mode for development.\n"
-        "To build with cocos2d-x:\n"
-        "  1. Download cocos2d-x from https://cocos2d-x.org/download\n"
-        "  2. Extract to ${CMAKE_SOURCE_DIR}/cocos2d-x\n"
-        "  3. Or set -DCOCOS2DX_ROOT=/path/to/cocos2d-x\n"
+        "cocos2d-x NOT FOUND — Building in STUB mode (no GUI).\n"
+        "\n"
+        "To build with GUI mode, do ONE of the following:\n"
+        "\n"
+        "  Option 1: Pass the path directly to CMake:\n"
+        "    cmake -DCOCOS2DX_ROOT=/path/to/cocos2d-x ..\n"
+        "\n"
+        "  Option 2: Set the environment variable:\n"
+        "    export COCOS2DX_ROOT=/path/to/cocos2d-x\n"
+        "    cmake ..\n"
+        "\n"
+        "  Option 3: Symlink into the project:\n"
+        "    ln -s /path/to/cocos2d-x ${CMAKE_SOURCE_DIR}/cocos2d-x\n"
+        "    cmake ..\n"
+        "\n"
+        "  To find your cocos2d-x installation:\n"
+        "    find ~ -name 'cocos2d-x' -type d -maxdepth 4 2>/dev/null\n"
     )
     set(COCOS2D_FOUND FALSE)
 endif()
@@ -105,31 +130,82 @@ set(GAME_HEADERS
 )
 
 # ============================================================================
-# Build Target
+# Build Target — macOS App Bundle when cocos2d-x is available
 # ============================================================================
-add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${GAME_HEADERS})
+if(APPLE AND COCOS2D_FOUND)
+    # Build as a macOS .app bundle for self-contained distribution
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${GAME_SOURCES} ${GAME_HEADERS})
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/macos/Info.plist.in"
+        MACOSX_BUNDLE_BUNDLE_NAME "Missile Battery Command"
+        MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.imagerybusinesssystems.missilebatterycommand"
+        MACOSX_BUNDLE_COPYRIGHT "© 2026 Imagery Business Systems, LLC"
+        MACOSX_BUNDLE_ICON_FILE "AppIcon"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.imagerybusinesssystems.missilebatterycommand"
+        XCODE_ATTRIBUTE_INFOPLIST_KEY_CFBundleDisplayName "Missile Battery Command"
+    )
+
+    # Embed dynamic libraries inside the app bundle Frameworks directory
+    # This makes the app self-contained — users don't need to install dependencies
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        BUILD_RPATH "@executable_path/../Frameworks"
+        INSTALL_RPATH "@executable_path/../Frameworks"
+        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/../Frameworks"
+    )
+
+    # Copy Resources into the app bundle
+    if(EXISTS "${CMAKE_SOURCE_DIR}/Resources")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Resources"
+            "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Resources"
+        )
+    endif()
+
+    # Post-build: copy any cocos2d-x dylibs into Frameworks and fix install names
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Frameworks"
+        COMMENT "Creating Frameworks directory in app bundle"
+    )
+
+    # If cocos2d-x builds shared libraries, embed them
+    if(TARGET cocos2d AND BUILD_SHARED_LIBS)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:cocos2d>"
+                "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Frameworks/"
+            COMMENT "Embedding cocos2d dylib in app bundle"
+        )
+    endif()
+else()
+    # Non-macOS or stub mode: plain executable
+    add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${GAME_HEADERS})
+
+    if(EXISTS "${CMAKE_SOURCE_DIR}/Resources")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/Resources"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
+        )
+    endif()
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
 if(COCOS2D_FOUND)
+    # Prefer static linking for self-contained app bundle
     target_link_libraries(${PROJECT_NAME} cocos2d)
     target_compile_definitions(${PROJECT_NAME} PRIVATE USE_COCOS2DX=1)
 else()
     # Stub mode: compile without cocos2d-x for code validation
     target_compile_definitions(${PROJECT_NAME} PRIVATE USE_COCOS2DX=0)
-endif()
-
-# ============================================================================
-# Resource Copying
-# ============================================================================
-if(EXISTS "${CMAKE_SOURCE_DIR}/Resources")
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/Resources"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
 endif()
 
 # ============================================================================
